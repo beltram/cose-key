@@ -6,6 +6,11 @@ pub enum CoseKeyError {
     #[cfg(feature = "p384")]
     #[error("Invalid P384 key")]
     InvalidP384Key,
+    #[cfg(feature = "bls")]
+    #[error(transparent)]
+    BlsSignatureError(#[from] bls_signatures::Error),
+    #[error("Public encoded point does not match")]
+    MismatchPrivateKey,
     #[error("Invalid KeyType")]
     InvalidKty,
     #[error("Unknown algorithm '{0:?}'. Algorithms need to be IANA assigned")]

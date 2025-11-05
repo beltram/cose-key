@@ -1,3 +1,5 @@
+#[cfg(feature = "bls")]
+mod bls;
 mod codec;
 #[cfg(feature = "p256")]
 mod ecdsa_p256;

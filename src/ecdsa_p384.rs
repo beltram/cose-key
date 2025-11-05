@@ -137,9 +137,9 @@ impl TryFrom<&CoseKey> for p384::PublicKey {
         use p384::elliptic_curve::sec1::FromEncodedPoint as _;
 
         let point = p384::EncodedPoint::from_affine_coordinates(x, y, false);
-        Self::from_encoded_point(&point)
-            .into_option()
-            .ok_or(CoseKeyError::InvalidP384Key)
+        // we use this weird construct instead of `.into_option()` because a crate might enforce an
+        // older version of subtle where the method is absent
+        Option::from(Self::from_encoded_point(&point)).ok_or(CoseKeyError::InvalidP384Key)
     }
 }
 

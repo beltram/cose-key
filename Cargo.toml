@@ -15,6 +15,7 @@ default = []
 ed25519 = ["dep:ed25519-dalek"]
 p256 = ["dep:p256"]
 p384 = ["dep:p384"]
+bls = ["dep:bls-signatures"]
 pem = ["dep:pkcs8", "pkcs8/pem", "ed25519-dalek?/pem", "p256?/pem", "p384?/pem"]
 
 [dependencies]
@@ -26,12 +27,13 @@ coset = { version = "0.4", default-features = false }
 ed25519-dalek = { version = "2.2", default-features = false, optional = true }
 p256 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
 p384 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
+bls-signatures = { version = "0.15", optional = true }
 pkcs8 = { version = "0.10", optional = true, features = ["std"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 rand = "0.8"
-cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem"] }
+cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem", "bls"] }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 getrandom = { version = "0.2", features = ["js"] }
 

@@ -105,7 +105,7 @@ impl TryFrom<&CoseKey> for ed25519_dalek::VerifyingKey {
     }
 }
 
-impl TryFrom<crate::CoseKey> for ed25519_dalek::VerifyingKey {
+impl TryFrom<CoseKey> for ed25519_dalek::VerifyingKey {
     type Error = CoseKeyError;
 
     fn try_from(key: crate::CoseKey) -> Result<Self, Self::Error> {
