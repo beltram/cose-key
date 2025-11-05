@@ -1,0 +1,74 @@
+[package]
+name = "cose-key"
+version = "0.1.0"
+edition = "2024"
+description = "CoseKey [RFC 8152]"
+documentation = "https://datatracker.ietf.org/doc/html/rfc8152"
+authors = ["Beltram Maldant"]
+keywords = ["cbor", "cose"]
+
+include = ["/src/*", "/Cargo.toml"]
+
+[features]
+default = []
+ed25519 = ["dep:ed25519-dalek"]
+p256 = ["dep:p256"]
+p384 = ["dep:p384"]
+pem = ["dep:pkcs8", "pkcs8/pem", "ed25519-dalek?/pem", "p256?/pem", "p384?/pem"]
+
+[dependencies]
+ciborium = { version = "0.2", default-features = false }
+serde = { version = "1.0", default-features = false }
+thiserror = { version = "2.0", default-features = false }
+coset = { version = "0.4", default-features = false }
+
+ed25519-dalek = { version = "2.2", default-features = false, optional = true }
+p256 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
+p384 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
+pkcs8 = { version = "0.10", optional = true, features = ["std"] }
+
+[dev-dependencies]
+rand = "0.8"
+cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem"] }
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+getrandom = { version = "0.2", features = ["js"] }
+
+[workspace.lints.clippy]
+# Enforced Groups
+style = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+correctness = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Cherry Picks
+## Nursery
+missing_const_for_fn = "allow"
+derive_partial_eq_without_eq = "allow"
+significant_drop_tightening = "allow"  # Allowed due false positives
+trait_duplication_in_bounds = "allow"  # Allowed due false positives
+## restriction
+string_to_string = "warn"
+rc_mutex = "warn"
+## Pedantic
+needless_continue = "warn"
+needless_for_each = "warn"
+flat_map_option = "warn"
+filter_map_next = "warn"
+explicit_into_iter_loop = "warn"
+manual_ok_or = "warn"
+indexing_slicing = "warn"
+unused_self = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_clone = "warn"
+inefficient_to_string = "warn"
+large_types_passed_by_value = "warn"
+linkedlist = "warn"
+lossy_float_literal = "warn"
+match_same_arms = "warn"
+match_wild_err_arm = "warn"
+mut_mut = "warn"
+option_option = "warn"
+ref_option_ref = "warn"
+explicit_iter_loop = "warn"
