@@ -2,7 +2,7 @@ mod codec;
 mod error;
 
 use ciborium::Value;
-use coset::{iana, iana::EnumI64, Algorithm, KeyOperation, KeyType, Label};
+use coset::{Algorithm, KeyOperation, KeyType, Label, iana, iana::EnumI64};
 pub use error::CoseKeyError;
 
 #[derive(Clone, Debug, Default, PartialEq)]
