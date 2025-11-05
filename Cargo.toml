@@ -6,6 +6,7 @@ description = "CoseKey [RFC 8152]"
 documentation = "https://datatracker.ietf.org/doc/html/rfc8152"
 authors = ["Beltram Maldant"]
 keywords = ["cbor", "cose"]
+license = "Apache-2.0"
 
 include = ["/src/*", "/Cargo.toml"]
 
