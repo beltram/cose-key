@@ -3,13 +3,13 @@ use bls_signatures::{PrivateKey as BbsPrivateKey, PublicKey as BbsPublicKey};
 use coset::iana::{self};
 
 // requested assignments as per https://datatracker.ietf.org/doc/html/draft-ietf-cose-bls-key-representations-08#section-4.2
-const TBD_BLS12381G1: i64 = 13;
+pub const TBD_BLS12381G1: i64 = 13;
 #[allow(dead_code)]
-const TBD_BLS12381G2: i64 = 14;
+pub const TBD_BLS12381G2: i64 = 14;
 #[allow(dead_code)]
-const TBD_BLS48581G1: i64 = 15;
+pub const TBD_BLS48581G1: i64 = 15;
 #[allow(dead_code)]
-const TBD_BLS48581G2: i64 = 16;
+pub const TBD_BLS48581G2: i64 = 16;
 
 impl CoseKeyExt for BbsPublicKey {
     fn alg() -> iana::Algorithm {

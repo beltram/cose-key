@@ -1,7 +1,7 @@
 use crate::{CoseKey, CoseKeyError};
 use ciborium::Value;
-use coset::iana::EnumI64;
-use coset::{Algorithm, KeyType, Label, iana};
+use coset::iana::EnumI64 as _;
+use coset::{Label, iana};
 
 impl CoseKey {
     pub fn from_public_key_pem<
@@ -26,6 +26,7 @@ impl pkcs8::EncodePublicKey for CoseKey {
             return Err(pkcs8::spki::Error::AlgorithmParametersMissing);
         };
 
+        #[allow(unused_variables)]
         let crv = |params: &[(Label, Value)], label: i64, expected: iana::EllipticCurve| {
             params
                 .iter()
@@ -37,8 +38,8 @@ impl pkcs8::EncodePublicKey for CoseKey {
         match (kty, alg, params) {
             #[cfg(feature = "ed25519")]
             (
-                KeyType::Assigned(iana::KeyType::OKP),
-                Algorithm::Assigned(iana::Algorithm::EdDSA),
+                coset::KeyType::Assigned(iana::KeyType::OKP),
+                coset::Algorithm::Assigned(iana::Algorithm::EdDSA),
                 p,
             ) if crv(
                 p,
@@ -52,8 +53,8 @@ impl pkcs8::EncodePublicKey for CoseKey {
             }
             #[cfg(feature = "p256")]
             (
-                KeyType::Assigned(iana::KeyType::EC2),
-                Algorithm::Assigned(iana::Algorithm::ES256),
+                coset::KeyType::Assigned(iana::KeyType::EC2),
+                coset::Algorithm::Assigned(iana::Algorithm::ES256),
                 p,
             ) if crv(
                 p,
@@ -67,8 +68,8 @@ impl pkcs8::EncodePublicKey for CoseKey {
             }
             #[cfg(feature = "p384")]
             (
-                KeyType::Assigned(iana::KeyType::EC2),
-                Algorithm::Assigned(iana::Algorithm::ES384),
+                coset::KeyType::Assigned(iana::KeyType::EC2),
+                coset::Algorithm::Assigned(iana::Algorithm::ES384),
                 p,
             ) if crv(
                 p,

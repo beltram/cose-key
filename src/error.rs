@@ -15,12 +15,10 @@ pub enum CoseKeyError {
     InvalidKty,
     #[error("Unknown algorithm '{0:?}'. Algorithms need to be IANA assigned")]
     UnknownAlg(coset::Algorithm),
-    #[error("A COSE key must have an algorithm")]
-    MissingAlg,
     #[error("Unknown elliptic curve '{0}'")]
     UnknownCurve(i64),
-    #[error("Expected the KeyConfirmation to be of type '{0}' but was '{1}'")]
-    InvalidAlg(i64, i64),
+    #[error("Expected the KeyConfirmation to be of type '{0:?}' but was '{1:?}'")]
+    InvalidAlg(coset::iana::Algorithm, coset::iana::Algorithm),
     #[error("Missing 'crv' claim")]
     MissingCrv,
     #[error("Missing EC point '{0}'")]

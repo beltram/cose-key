@@ -73,29 +73,19 @@ impl TryFrom<&CoseKey> for ed25519_dalek::VerifyingKey {
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
         let coset::CoseKey {
-            alg: Some(alg),
-            params,
-            kty,
-            ..
-        } = &key.0
-        else {
-            return Err(CoseKeyError::MissingAlg);
-        };
+            alg, params, kty, ..
+        } = &key.0;
+
+        // verify alg if present
+        if let Some(Algorithm::Assigned(alg)) = alg
+            && *alg != iana::Algorithm::EdDSA
+        {
+            return Err(CoseKeyError::InvalidAlg(iana::Algorithm::EdDSA, *alg));
+        }
 
         // verify kty
         if kty != &KeyType::Assigned(iana::KeyType::OKP) {
             return Err(CoseKeyError::InvalidKty);
-        }
-
-        // verify alg
-        let coset::Algorithm::Assigned(alg) = alg else {
-            return Err(CoseKeyError::UnknownAlg(alg.clone()));
-        };
-        if *alg != iana::Algorithm::EdDSA {
-            return Err(CoseKeyError::InvalidAlg(
-                iana::Algorithm::EdDSA.to_i64(),
-                alg.to_i64(),
-            ));
         }
 
         // verify curve
@@ -140,29 +130,19 @@ impl TryFrom<&CoseKey> for ed25519_dalek::SigningKey {
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
         let coset::CoseKey {
-            alg: Some(alg),
-            params,
-            kty,
-            ..
-        } = &key.0
-        else {
-            return Err(CoseKeyError::MissingAlg);
-        };
+            alg, params, kty, ..
+        } = &key.0;
+
+        // verify alg if present
+        if let Some(Algorithm::Assigned(alg)) = alg
+            && *alg != iana::Algorithm::EdDSA
+        {
+            return Err(CoseKeyError::InvalidAlg(iana::Algorithm::EdDSA, *alg));
+        }
 
         // verify kty
         if kty != &KeyType::Assigned(iana::KeyType::OKP) {
             return Err(CoseKeyError::InvalidKty);
-        }
-
-        // verify alg
-        let coset::Algorithm::Assigned(alg) = alg else {
-            return Err(CoseKeyError::UnknownAlg(alg.clone()));
-        };
-        if *alg != iana::Algorithm::EdDSA {
-            return Err(CoseKeyError::InvalidAlg(
-                iana::Algorithm::EdDSA.to_i64(),
-                alg.to_i64(),
-            ));
         }
 
         // verify curve
@@ -238,5 +218,12 @@ mod tests {
         let cose_key = CoseKey::from(&sk);
         let sk_from_cose = ed25519_dalek::SigningKey::try_from(&cose_key).unwrap();
         assert_eq!(sk, sk_from_cose);
+    }
+
+    #[test]
+    fn can_build_public_key_from_private_cose_key() {
+        let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let cose_key = CoseKey::from(&sk);
+        ed25519_dalek::VerifyingKey::try_from(&cose_key).unwrap();
     }
 }
