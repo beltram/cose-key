@@ -10,6 +10,8 @@ mod eddsa_ed25519;
 mod error;
 #[cfg(feature = "pem")]
 mod pem;
+#[cfg(feature = "signature")]
+mod signature;
 
 use ciborium::Value;
 use coset::{Algorithm, KeyOperation, KeyType, Label, iana, iana::EnumI64};

@@ -304,20 +304,15 @@ impl TryFrom<&CoseKey> for p384::ecdsa::VerifyingKey {
     type Error = CoseKeyError;
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
-        let coset::CoseKey { alg: Some(alg), .. } = &key.0 else {
-            return Err(CoseKeyError::MissingAlg);
+        // verify alg if present
+        if let coset::CoseKey {
+            alg: Some(Algorithm::Assigned(alg)),
+            ..
+        } = &key.0
+            && *alg != iana::Algorithm::ES384
+        {
+            return Err(CoseKeyError::InvalidAlg(iana::Algorithm::ES384, *alg));
         };
-
-        // verify alg
-        let coset::Algorithm::Assigned(alg) = alg else {
-            return Err(CoseKeyError::UnknownAlg(alg.clone()));
-        };
-        if *alg != iana::Algorithm::ES384 {
-            return Err(CoseKeyError::InvalidAlg(
-                iana::Algorithm::ES384.to_i64(),
-                alg.to_i64(),
-            ));
-        }
 
         Ok(Self::from(p384::PublicKey::try_from(key)?))
     }
@@ -455,5 +450,16 @@ mod tests {
         let cose_key = CoseKey::try_from(&sk).unwrap();
         let sk_from_cose = p384::ecdsa::SigningKey::try_from(&cose_key).unwrap();
         assert_eq!(sk, sk_from_cose);
+    }
+
+    #[test]
+    fn can_build_public_key_from_private_cose_key() {
+        let sk = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let cose_key = CoseKey::try_from(&sk).unwrap();
+        p384::ecdsa::VerifyingKey::try_from(&cose_key).unwrap();
+
+        let sk = p384::SecretKey::random(&mut rand::thread_rng());
+        let cose_key = CoseKey::try_from(&sk).unwrap();
+        p384::PublicKey::try_from(&cose_key).unwrap();
     }
 }
