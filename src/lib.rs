@@ -105,6 +105,19 @@ impl CoseKey {
             .and_then(|i| i64::try_from(i).ok())
             .and_then(iana::EllipticCurve::from_i64)
     }
+
+    /// Turns a secret/signing CoseKey into a public/verifying CoseKey
+    pub fn as_public_cose_key(&mut self) {
+        match self.kty {
+            KeyType::Assigned(iana::KeyType::OKP) => self
+                .params
+                .retain(|(label, _)| label != &Label::Int(iana::OkpKeyParameter::D.to_i64())),
+            KeyType::Assigned(iana::KeyType::EC2) => self
+                .params
+                .retain(|(label, _)| label != &Label::Int(iana::Ec2KeyParameter::D.to_i64())),
+            _ => {}
+        }
+    }
 }
 
 impl std::ops::Deref for CoseKey {
@@ -112,6 +125,12 @@ impl std::ops::Deref for CoseKey {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl std::ops::DerefMut for CoseKey {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

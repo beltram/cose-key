@@ -83,7 +83,7 @@ impl TryFrom<&CoseKey> for ed25519_dalek::VerifyingKey {
         };
 
         // verify kty
-        if kty != &coset::KeyType::Assigned(iana::KeyType::OKP) {
+        if kty != &KeyType::Assigned(iana::KeyType::OKP) {
             return Err(CoseKeyError::InvalidKty);
         }
 
@@ -150,7 +150,7 @@ impl TryFrom<&CoseKey> for ed25519_dalek::SigningKey {
         };
 
         // verify kty
-        if kty != &coset::KeyType::Assigned(iana::KeyType::OKP) {
+        if kty != &KeyType::Assigned(iana::KeyType::OKP) {
             return Err(CoseKeyError::InvalidKty);
         }
 
