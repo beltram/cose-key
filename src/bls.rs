@@ -17,13 +17,13 @@ impl CoseKeyExt for BbsPublicKey {
     }
 }
 
-impl EcdsaCoseKeyExt for BbsPublicKey {
+/*impl EcdsaCoseKeyExt for BbsPublicKey {
     fn crv() -> iana::EllipticCurve {
         // TODO: we cannot publish this crate by depending on a git fork of coset so let's wait a bit
         // it should be: BLS12381G2 (13 requested)
         iana::EllipticCurve::Ed25519
     }
-}
+}*/
 
 impl TryFrom<&BbsPublicKey> for CoseKey {
     type Error = CoseKeyError;
@@ -32,6 +32,10 @@ impl TryFrom<&BbsPublicKey> for CoseKey {
         let x = pk.as_affine().to_compressed();
         Ok(Self(
             coset::CoseKeyBuilder::new_okp_key()
+                .param(
+                    iana::OkpKeyParameter::Crv.to_i64(),
+                    Value::Integer(TBD_BLS12381G1.into()),
+                )
                 .param(iana::OkpKeyParameter::X.to_i64(), Value::Bytes(x.into()))
                 .build(),
         ))
@@ -54,6 +58,10 @@ impl TryFrom<&BbsPrivateKey> for CoseKey {
         let d = bls_signatures::Serialize::as_bytes(sk);
         Ok(Self(
             coset::CoseKeyBuilder::new_okp_key()
+                .param(
+                    iana::OkpKeyParameter::Crv.to_i64(),
+                    Value::Integer(TBD_BLS12381G1.into()),
+                )
                 .param(iana::OkpKeyParameter::X.to_i64(), Value::Bytes(x.into()))
                 .param(iana::OkpKeyParameter::D.to_i64(), Value::Bytes(d))
                 .build(),
@@ -73,30 +81,11 @@ impl TryFrom<&CoseKey> for BbsPublicKey {
     type Error = CoseKeyError;
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
-        let coset::CoseKey {
-            alg: Some(alg),
-            params,
-            kty,
-            ..
-        } = &key.0
-        else {
-            return Err(CoseKeyError::MissingAlg);
-        };
+        let coset::CoseKey { params, kty, .. } = &key.0;
 
         // verify kty
         if kty != &KeyType::Assigned(iana::KeyType::OKP) {
             return Err(CoseKeyError::InvalidKty);
-        }
-
-        // verify alg
-        let Algorithm::Assigned(alg) = alg else {
-            return Err(CoseKeyError::UnknownAlg(alg.clone()));
-        };
-        if *alg != iana::Algorithm::EdDSA {
-            return Err(CoseKeyError::InvalidAlg(
-                iana::Algorithm::EdDSA.to_i64(),
-                alg.to_i64(),
-            ));
         }
 
         // verify curve
@@ -142,30 +131,11 @@ impl TryFrom<&CoseKey> for BbsPrivateKey {
     type Error = CoseKeyError;
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
-        let coset::CoseKey {
-            alg: Some(alg),
-            params,
-            kty,
-            ..
-        } = &key.0
-        else {
-            return Err(CoseKeyError::MissingAlg);
-        };
+        let coset::CoseKey { params, kty, .. } = &key.0;
 
         // verify kty
         if kty != &KeyType::Assigned(iana::KeyType::OKP) {
             return Err(CoseKeyError::InvalidKty);
-        }
-
-        // verify alg
-        let Algorithm::Assigned(alg) = alg else {
-            return Err(CoseKeyError::UnknownAlg(alg.clone()));
-        };
-        if *alg != iana::Algorithm::EdDSA {
-            return Err(CoseKeyError::InvalidAlg(
-                iana::Algorithm::EdDSA.to_i64(),
-                alg.to_i64(),
-            ));
         }
 
         // verify curve
@@ -207,9 +177,7 @@ impl TryFrom<&CoseKey> for BbsPrivateKey {
 
         use bls_signatures::Serialize as _;
         let sk = Self::from_bytes(d)?;
-
         let expected_x = sk.public_key().as_affine().to_compressed();
-
         if x != expected_x {
             return Err(CoseKeyError::MismatchPrivateKey);
         }
@@ -223,5 +191,26 @@ impl TryFrom<CoseKey> for BbsPrivateKey {
 
     fn try_from(key: CoseKey) -> Result<Self, Self::Error> {
         (&key).try_into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::CoseKey;
+
+    #[test]
+    fn public_key_should_roundtrip() {
+        let pk = bls_signatures::PrivateKey::generate(&mut rand::thread_rng()).public_key();
+        let cose_key = CoseKey::try_from(&pk).unwrap();
+        let pk_from_cose = bls_signatures::PublicKey::try_from(cose_key).unwrap();
+        assert_eq!(pk, pk_from_cose);
+    }
+
+    #[test]
+    fn private_key_should_roundtrip() {
+        let sk = bls_signatures::PrivateKey::generate(&mut rand::thread_rng());
+        let cose_key = CoseKey::try_from(&sk).unwrap();
+        let sk_from_cose = bls_signatures::PrivateKey::try_from(cose_key).unwrap();
+        assert_eq!(sk, sk_from_cose);
     }
 }
