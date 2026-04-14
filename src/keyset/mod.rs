@@ -11,14 +11,6 @@ pub use error::CoseKeySetError;
 pub struct CoseKeySet(Vec<crate::CoseKey>);
 
 impl CoseKeySet {
-    pub fn new<K>(key: &K) -> Result<Self, CoseKeySetError>
-    where
-        K: KeypairRef,
-        <K as KeypairRef>::VerifyingKey: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
-    {
-        Ok(Self::builder().with(key)?.build())
-    }
-
     pub fn builder() -> CoseKeySetBuilder {
         CoseKeySetBuilder::default()
     }
@@ -49,22 +41,40 @@ pub struct CoseKeySetBuilder {
 
 impl CoseKeySetBuilder {
     // fluent builder
-    pub fn with<K>(mut self, key: &K) -> Result<Self, CoseKeySetError>
+    pub fn with<K, S>(mut self, key: &K) -> Result<Self, CoseKeySetError>
     where
-        // for<'a> &'a K: KeypairRef,
-        // for<'a> <&'a K as KeypairRef>::VerifyingKey: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
-        K: KeypairRef,
-        <K as KeypairRef>::VerifyingKey: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
+        K: signature::Verifier<S>,
+        for<'a> &'a K: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
     {
         self.and(key)?;
         Ok(self)
     }
 
     /// use this in iterators
-    pub fn and<K>(&mut self, key: &K) -> Result<(), CoseKeySetError>
+    pub fn and<K, S>(&mut self, key: &K) -> Result<(), CoseKeySetError>
     where
-        // for<'a> &'a K: KeypairRef,
-        // for<'a> <&'a K as KeypairRef>::VerifyingKey: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
+        K: signature::Verifier<S>,
+        for<'a> &'a K: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
+    {
+        if !self.keys.insert(key.try_into().map_err(Into::into)?) {
+            return Err(CoseKeySetError::DuplicateKey);
+        }
+        Ok(())
+    }
+
+    // fluent builder
+    pub fn with_signing_key<K>(mut self, key: &K) -> Result<Self, CoseKeySetError>
+    where
+        K: KeypairRef,
+        <K as KeypairRef>::VerifyingKey: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
+    {
+        self.and_signing_key(key)?;
+        Ok(self)
+    }
+
+    /// use this in iterators
+    pub fn and_signing_key<K>(&mut self, key: &K) -> Result<(), CoseKeySetError>
+    where
         K: KeypairRef,
         <K as KeypairRef>::VerifyingKey: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
     {
@@ -111,9 +121,9 @@ mod tests {
         let key_b = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
 
         let keyset = CoseKeySet::builder()
-            .with(&key_a)
+            .with_signing_key(&key_a)
             .unwrap()
-            .with(&key_b)
+            .with(&key_b.verifying_key())
             .unwrap()
             .build();
 
@@ -131,9 +141,9 @@ mod tests {
         let key_b = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
 
         let keyset = CoseKeySet::builder()
-            .with(&key_a)
+            .with_signing_key(&key_a)
             .unwrap()
-            .with(&key_b)
+            .with::<_, p256::ecdsa::Signature>(key_b.as_ref())
             .unwrap()
             .build();
 
@@ -151,9 +161,9 @@ mod tests {
         let key_b = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
 
         let keyset = CoseKeySet::builder()
-            .with(&key_a)
+            .with_signing_key(&key_a)
             .unwrap()
-            .with(&key_b)
+            .with::<_, p384::ecdsa::Signature>(key_b.as_ref())
             .unwrap()
             .build();
 
@@ -167,24 +177,33 @@ mod tests {
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn should_be_versatile() {
-        let ed25519_key = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
-        let p256_key = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
-        let p384_key = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let ed25519_key_a = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let ed25519_key_b = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let p256_key_a = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let p256_key_b = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let p384_key_a = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let p384_key_b = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
 
         let keyset = CoseKeySet::builder()
-            .with(&ed25519_key)
+            .with_signing_key(&ed25519_key_a)
             .unwrap()
-            .with(&p256_key)
+            .with(&ed25519_key_b.verifying_key())
             .unwrap()
-            .with(&p384_key)
+            .with_signing_key(&p256_key_a)
+            .unwrap()
+            .with::<_, p256::ecdsa::Signature>(p256_key_b.as_ref())
+            .unwrap()
+            .with_signing_key(&p384_key_a)
+            .unwrap()
+            .with::<_, p384::ecdsa::Signature>(p384_key_b.as_ref())
             .unwrap()
             .build();
 
         Value::serialized(&keyset).unwrap();
 
-        assert_eq!(keyset.all_ecc_keys::<ed25519_dalek::VerifyingKey>().count(), 1);
-        assert_eq!(keyset.all_ecc_keys::<p256::ecdsa::VerifyingKey>().count(), 1);
-        assert_eq!(keyset.all_ecc_keys::<p384::ecdsa::VerifyingKey>().count(), 1);
+        assert_eq!(keyset.all_ecc_keys::<ed25519_dalek::VerifyingKey>().count(), 2);
+        assert_eq!(keyset.all_ecc_keys::<p256::ecdsa::VerifyingKey>().count(), 2);
+        assert_eq!(keyset.all_ecc_keys::<p384::ecdsa::VerifyingKey>().count(), 2);
     }
 
     #[test]
@@ -271,7 +290,17 @@ mod tests {
     fn should_reject_duplicates() {
         let key_a = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
         assert!(matches!(
-            CoseKeySet::builder().with(&key_a).unwrap().with(&key_a),
+            CoseKeySet::builder()
+                .with_signing_key(&key_a)
+                .unwrap()
+                .with_signing_key(&key_a),
+            Err(CoseKeySetError::DuplicateKey)
+        ));
+        assert!(matches!(
+            CoseKeySet::builder()
+                .with_signing_key(&key_a)
+                .unwrap()
+                .with(&key_a.verifying_key()),
             Err(CoseKeySetError::DuplicateKey)
         ));
     }
