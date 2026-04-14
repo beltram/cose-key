@@ -1,7 +1,6 @@
 use crate::CoseKey;
 use ciborium::Value;
-use coset::iana;
-use coset::{KeyType, Label};
+use coset::{KeyType, Label, iana};
 use iana::EnumI64 as _;
 #[allow(unused_imports)]
 use signature::SignatureEncoding as _;
@@ -11,9 +10,7 @@ use signature::{Signer, Verifier};
     feature = "signature",
     not(any(feature = "ed25519", feature = "p256", feature = "p384"))
 ))]
-compile_error!(
-    "At least one feature ['ed25519', 'p256', 'p384'] has to be enabled alongside 'signature' feature"
-);
+compile_error!("At least one feature of ['ed25519', 'p256', 'p384'] has to be enabled alongside 'signature' feature");
 
 impl Signer<Vec<u8>> for CoseKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Vec<u8>, signature::Error> {
@@ -30,18 +27,16 @@ impl Signer<Vec<u8>> for CoseKey {
                     .try_into()
                     .map_err(|_| signature::Error::from_source("Invalid crv"))?;
                 match iana::EllipticCurve::from_i64(crv) {
+                    #[cfg(feature = "ed25519")]
                     Some(iana::EllipticCurve::Ed25519) => {
-                        if cfg!(feature = "ed25519") {
-                            let sk = ed25519_dalek::SigningKey::try_from(self).map_err(|_| {
-                                signature::Error::from_source("Invalid Ed25519 CoseKey")
-                            })?;
-                            Ok(sk.try_sign(msg)?.to_vec())
-                        } else {
-                            Err(signature::Error::from_source(
-                                "You must turn on the 'ed25519' feature to use this",
-                            ))
-                        }
+                        let sk = ed25519_dalek::SigningKey::try_from(self)
+                            .map_err(|_| signature::Error::from_source("Invalid Ed25519 CoseKey"))?;
+                        Ok(sk.try_sign(msg)?.to_vec())
                     }
+                    #[cfg(not(feature = "ed25519"))]
+                    Some(iana::EllipticCurve::Ed25519) => Err(signature::Error::from_source(
+                        "You must turn on the 'ed25519' feature to use this",
+                    )),
                     _ => Err(signature::Error::from_source("Unsupported curve")),
                 }
             }
@@ -57,29 +52,25 @@ impl Signer<Vec<u8>> for CoseKey {
                     .try_into()
                     .map_err(|_| signature::Error::from_source("Invalid crv"))?;
                 match iana::EllipticCurve::from_i64(crv) {
+                    #[cfg(not(feature = "p256"))]
+                    Some(iana::EllipticCurve::P_256) => Err(signature::Error::from_source(
+                        "You must turn on the 'p256' feature to use this",
+                    )),
+                    #[cfg(feature = "p256")]
                     Some(iana::EllipticCurve::P_256) => {
-                        if cfg!(feature = "p256") {
-                            let sk = p256::ecdsa::SigningKey::try_from(self).map_err(|_| {
-                                signature::Error::from_source("Invalid P256 CoseKey")
-                            })?;
-                            Ok(Signer::<p256::ecdsa::Signature>::try_sign(&sk, msg)?.to_vec())
-                        } else {
-                            Err(signature::Error::from_source(
-                                "You must turn on the 'p256' feature to use this",
-                            ))
-                        }
+                        let sk = p256::ecdsa::SigningKey::try_from(self)
+                            .map_err(|_| signature::Error::from_source("Invalid P256 CoseKey"))?;
+                        Ok(Signer::<p256::ecdsa::Signature>::try_sign(&sk, msg)?.to_vec())
                     }
+                    #[cfg(not(feature = "p384"))]
+                    Some(iana::EllipticCurve::P_384) => Err(signature::Error::from_source(
+                        "You must turn on the 'p384' feature to use this",
+                    )),
+                    #[cfg(feature = "p384")]
                     Some(iana::EllipticCurve::P_384) => {
-                        if cfg!(feature = "p384") {
-                            let sk = p384::ecdsa::SigningKey::try_from(self).map_err(|_| {
-                                signature::Error::from_source("Invalid P384 CoseKey")
-                            })?;
-                            Ok(Signer::<p384::ecdsa::Signature>::try_sign(&sk, msg)?.to_vec())
-                        } else {
-                            Err(signature::Error::from_source(
-                                "You must turn on the 'p384' feature to use this",
-                            ))
-                        }
+                        let sk = p384::ecdsa::SigningKey::try_from(self)
+                            .map_err(|_| signature::Error::from_source("Invalid P384 CoseKey"))?;
+                        Ok(Signer::<p384::ecdsa::Signature>::try_sign(&sk, msg)?.to_vec())
                     }
                     _ => Err(signature::Error::from_source("Unsupported curve")),
                 }
@@ -104,20 +95,17 @@ impl Verifier<Vec<u8>> for CoseKey {
                     .try_into()
                     .map_err(|_| signature::Error::from_source("Invalid crv"))?;
                 match iana::EllipticCurve::from_i64(crv) {
+                    #[cfg(feature = "ed25519")]
                     Some(iana::EllipticCurve::Ed25519) => {
-                        if cfg!(feature = "ed25519") {
-                            let vk = ed25519_dalek::VerifyingKey::try_from(self).map_err(|_| {
-                                signature::Error::from_source("Invalid Ed25519 CoseKey")
-                            })?;
-                            let signature =
-                                ed25519_dalek::Signature::from_slice(signature.as_slice())?;
-                            vk.verify(msg, &signature)
-                        } else {
-                            Err(signature::Error::from_source(
-                                "You must turn on the 'ed25519' feature to use this",
-                            ))
-                        }
+                        let vk = ed25519_dalek::VerifyingKey::try_from(self)
+                            .map_err(|_| signature::Error::from_source("Invalid Ed25519 CoseKey"))?;
+                        let signature = ed25519_dalek::Signature::from_slice(signature.as_slice())?;
+                        vk.verify(msg, &signature)
                     }
+                    #[cfg(not(feature = "ed25519"))]
+                    Some(iana::EllipticCurve::Ed25519) => Err(signature::Error::from_source(
+                        "You must turn on the 'ed25519' feature to use this",
+                    )),
                     _ => Err(signature::Error::from_source("Unsupported curve")),
                 }
             }
@@ -133,33 +121,27 @@ impl Verifier<Vec<u8>> for CoseKey {
                     .try_into()
                     .map_err(|_| signature::Error::from_source("Invalid crv"))?;
                 match iana::EllipticCurve::from_i64(crv) {
+                    #[cfg(not(feature = "p256"))]
+                    Some(iana::EllipticCurve::P_256) => Err(signature::Error::from_source(
+                        "You must turn on the 'p256' feature to use this",
+                    )),
+                    #[cfg(feature = "p256")]
                     Some(iana::EllipticCurve::P_256) => {
-                        if cfg!(feature = "p256") {
-                            let vk = p256::ecdsa::VerifyingKey::try_from(self).map_err(|_| {
-                                signature::Error::from_source("Invalid P256 CoseKey")
-                            })?;
-                            let signature =
-                                p256::ecdsa::Signature::from_slice(signature.as_slice())?;
-                            vk.verify(msg, &signature)
-                        } else {
-                            Err(signature::Error::from_source(
-                                "You must turn on the 'p256' feature to use this",
-                            ))
-                        }
+                        let vk = p256::ecdsa::VerifyingKey::try_from(self)
+                            .map_err(|_| signature::Error::from_source("Invalid P256 CoseKey"))?;
+                        let signature = p256::ecdsa::Signature::from_slice(signature.as_slice())?;
+                        vk.verify(msg, &signature)
                     }
+                    #[cfg(not(feature = "p384"))]
+                    Some(iana::EllipticCurve::P_384) => Err(signature::Error::from_source(
+                        "You must turn on the 'p384' feature to use this",
+                    )),
+                    #[cfg(feature = "p384")]
                     Some(iana::EllipticCurve::P_384) => {
-                        if cfg!(feature = "p384") {
-                            let vk = p384::ecdsa::VerifyingKey::try_from(self).map_err(|_| {
-                                signature::Error::from_source("Invalid P384 CoseKey")
-                            })?;
-                            let signature =
-                                p384::ecdsa::Signature::from_slice(signature.as_slice())?;
-                            vk.verify(msg, &signature)
-                        } else {
-                            Err(signature::Error::from_source(
-                                "You must turn on the 'p384' feature to use this",
-                            ))
-                        }
+                        let vk = p384::ecdsa::VerifyingKey::try_from(self)
+                            .map_err(|_| signature::Error::from_source("Invalid P384 CoseKey"))?;
+                        let signature = p384::ecdsa::Signature::from_slice(signature.as_slice())?;
+                        vk.verify(msg, &signature)
                     }
                     _ => Err(signature::Error::from_source("Unsupported curve")),
                 }

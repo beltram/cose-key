@@ -20,10 +20,7 @@ impl From<&ed25519_dalek::VerifyingKey> for CoseKey {
         Self(
             coset::CoseKeyBuilder::new_okp_key()
                 .algorithm(iana::Algorithm::EdDSA)
-                .param(
-                    iana::OkpKeyParameter::X.to_i64(),
-                    Value::Bytes(pk.as_bytes().into()),
-                )
+                .param(iana::OkpKeyParameter::X.to_i64(), Value::Bytes(pk.as_bytes().into()))
                 .param(
                     iana::OkpKeyParameter::Crv.to_i64(),
                     Value::Integer(iana::EllipticCurve::Ed25519.to_i64().into()),
@@ -48,10 +45,7 @@ impl From<&ed25519_dalek::SigningKey> for CoseKey {
                     iana::OkpKeyParameter::X.to_i64(),
                     Value::Bytes(sk.verifying_key().as_bytes().into()),
                 )
-                .param(
-                    iana::OkpKeyParameter::D.to_i64(),
-                    Value::Bytes(sk.as_bytes().into()),
-                )
+                .param(iana::OkpKeyParameter::D.to_i64(), Value::Bytes(sk.as_bytes().into()))
                 .param(
                     iana::OkpKeyParameter::Crv.to_i64(),
                     Value::Integer(iana::EllipticCurve::Ed25519.to_i64().into()),
@@ -72,9 +66,7 @@ impl TryFrom<&CoseKey> for ed25519_dalek::VerifyingKey {
     type Error = CoseKeyError;
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
-        let coset::CoseKey {
-            alg, params, kty, ..
-        } = &key.0;
+        let coset::CoseKey { alg, params, kty, .. } = &key.0;
 
         // verify alg if present
         if let Some(Algorithm::Assigned(alg)) = alg
@@ -95,9 +87,7 @@ impl TryFrom<&CoseKey> for ed25519_dalek::VerifyingKey {
         else {
             return Err(CoseKeyError::MissingCrv);
         };
-        let crv: i64 = (*crv)
-            .try_into()
-            .map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
+        let crv: i64 = (*crv).try_into().map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
 
         if crv != iana::EllipticCurve::Ed25519.to_i64() {
             return Err(CoseKeyError::UnknownCurve(crv));
@@ -110,9 +100,9 @@ impl TryFrom<&CoseKey> for ed25519_dalek::VerifyingKey {
         else {
             return Err(CoseKeyError::MissingPoint("Missing 'x' claim"));
         };
-        let x = x[..].try_into().map_err(|_| {
-            CoseKeyError::InvalidKeyLength(ed25519_dalek::PUBLIC_KEY_LENGTH, x.len())
-        })?;
+        let x = x[..]
+            .try_into()
+            .map_err(|_| CoseKeyError::InvalidKeyLength(ed25519_dalek::PUBLIC_KEY_LENGTH, x.len()))?;
         Ok(Self::from_bytes(x)?)
     }
 }
@@ -129,9 +119,7 @@ impl TryFrom<&CoseKey> for ed25519_dalek::SigningKey {
     type Error = CoseKeyError;
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
-        let coset::CoseKey {
-            alg, params, kty, ..
-        } = &key.0;
+        let coset::CoseKey { alg, params, kty, .. } = &key.0;
 
         // verify alg if present
         if let Some(Algorithm::Assigned(alg)) = alg
@@ -152,9 +140,7 @@ impl TryFrom<&CoseKey> for ed25519_dalek::SigningKey {
         else {
             return Err(CoseKeyError::MissingCrv);
         };
-        let crv: i64 = (*crv)
-            .try_into()
-            .map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
+        let crv: i64 = (*crv).try_into().map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
 
         if crv != iana::EllipticCurve::Ed25519.to_i64() {
             return Err(CoseKeyError::UnknownCurve(crv));
@@ -167,9 +153,9 @@ impl TryFrom<&CoseKey> for ed25519_dalek::SigningKey {
         else {
             return Err(CoseKeyError::MissingPoint("Missing 'x' claim"));
         };
-        let x: [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] = x[..].try_into().map_err(|_| {
-            CoseKeyError::InvalidKeyLength(ed25519_dalek::PUBLIC_KEY_LENGTH, x.len())
-        })?;
+        let x: [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] = x[..]
+            .try_into()
+            .map_err(|_| CoseKeyError::InvalidKeyLength(ed25519_dalek::PUBLIC_KEY_LENGTH, x.len()))?;
 
         // read d
         let Some((_, Value::Bytes(d))) = params
@@ -178,9 +164,9 @@ impl TryFrom<&CoseKey> for ed25519_dalek::SigningKey {
         else {
             return Err(CoseKeyError::MissingPoint("Missing 'x' claim"));
         };
-        let d = d[..].try_into().map_err(|_| {
-            CoseKeyError::InvalidKeyLength(ed25519_dalek::PUBLIC_KEY_LENGTH, d.len())
-        })?;
+        let d = d[..]
+            .try_into()
+            .map_err(|_| CoseKeyError::InvalidKeyLength(ed25519_dalek::PUBLIC_KEY_LENGTH, d.len()))?;
 
         let sk = Self::from_bytes(d);
         let expected_x = sk.verifying_key().to_bytes();
@@ -208,6 +194,7 @@ mod tests {
     fn public_key_should_roundtrip() {
         let pk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng()).verifying_key();
         let cose_key = CoseKey::from(&pk);
+        assert!(!cose_key.is_private());
         let pk_from_cose = ed25519_dalek::VerifyingKey::try_from(&cose_key).unwrap();
         assert_eq!(pk, pk_from_cose);
     }
@@ -216,6 +203,7 @@ mod tests {
     fn private_key_should_roundtrip() {
         let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
         let cose_key = CoseKey::from(&sk);
+        assert!(cose_key.is_private());
         let sk_from_cose = ed25519_dalek::SigningKey::try_from(&cose_key).unwrap();
         assert_eq!(sk, sk_from_cose);
     }

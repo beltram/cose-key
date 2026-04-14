@@ -18,9 +18,7 @@ impl<'de> serde::Deserialize<'de> for CoseKey {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         use serde::de::Error as _;
         let value = <ciborium::Value as serde::Deserialize>::deserialize(deserializer)?;
-        Ok(Self(
-            coset::CoseKey::from_cbor_value(value).map_err(D::Error::custom)?,
-        ))
+        Ok(Self(coset::CoseKey::from_cbor_value(value).map_err(D::Error::custom)?))
     }
 }
 

@@ -17,12 +17,14 @@ p256 = ["dep:p256"]
 p384 = ["dep:p384"]
 bls = ["dep:bls-signatures"]
 pem = ["dep:pkcs8", "pkcs8/pem", "ed25519-dalek?/pem", "p256?/pem", "p384?/pem"]
+signature = ["dep:signature"]
+thumbprint = ["dep:serde_bytes", "dep:digest"]
+keyset = ["dep:signature"]
+confirmation = ["serde_bytes/alloc"]
 
 [dependencies]
-ciborium = { version = "0.2", default-features = false }
 serde = { version = "1.0", default-features = false }
 thiserror = { version = "2.0", default-features = false }
-coset = { version = "0.4", default-features = false }
 
 signature = { version = "2.2", default-features = false, features = ["std"], optional = true }
 ed25519-dalek = { version = "2.2", default-features = false, optional = true }
@@ -30,13 +32,31 @@ p256 = { version = "0.13", default-features = false, features = ["ecdsa"], optio
 p384 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
 bls-signatures = { version = "0.15", optional = true }
 pkcs8 = { version = "0.10", optional = true, features = ["std"] }
+subtle = { version = "2.4", default-features = false }
+hex = { version = "0.4", default-features = false, features = ["alloc"] }
+sha2 = { version = "0.11", default-features = false }
+
+# thumbprint
+serde_bytes = { version = "0.11", default-features = false, optional = true }
+digest = { version = "0.11", default-features = false, optional = true }
+indexmap = "2.14"
+
+[dependencies.ciborium]
+git = "https://github.com/beltram/ciborium"
+branch = "simple-value+cde"
+default-features = false
+
+[dependencies.coset]
+git = "https://github.com/beltram/coset"
+branch = "cose-key"
+default-features = false
 
 [dev-dependencies]
+cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem", "bls", "signature", "thumbprint", "keyset", "confirmation"] }
 wasm-bindgen-test = "0.3"
 rand = "0.8"
-cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem", "bls", "signature"] }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
-p256 = { version = "0.13" , features = []}
+p256 = { version = "0.13", features = [] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [workspace.lints.clippy]

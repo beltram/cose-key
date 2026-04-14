@@ -27,12 +27,7 @@ impl TryFrom<&p384::PublicKey> for CoseKey {
             point.y().ok_or(Self::Error::InvalidP384Key)?,
         );
         Ok(Self(
-            coset::CoseKeyBuilder::new_ec2_pub_key(
-                iana::EllipticCurve::P_384,
-                x.to_vec(),
-                y.to_vec(),
-            )
-            .build(),
+            coset::CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_384, x.to_vec(), y.to_vec()).build(),
         ))
     }
 }
@@ -57,13 +52,8 @@ impl TryFrom<&p384::SecretKey> for CoseKey {
         );
         let d = sk.to_bytes();
         Ok(Self(
-            coset::CoseKeyBuilder::new_ec2_priv_key(
-                iana::EllipticCurve::P_384,
-                x.to_vec(),
-                y.to_vec(),
-                d.to_vec(),
-            )
-            .build(),
+            coset::CoseKeyBuilder::new_ec2_priv_key(iana::EllipticCurve::P_384, x.to_vec(), y.to_vec(), d.to_vec())
+                .build(),
         ))
     }
 }
@@ -86,13 +76,9 @@ impl TryFrom<&p384::ecdsa::VerifyingKey> for CoseKey {
             point.y().ok_or(Self::Error::InvalidP384Key)?,
         );
         Ok(Self(
-            coset::CoseKeyBuilder::new_ec2_pub_key(
-                iana::EllipticCurve::P_384,
-                x.to_vec(),
-                y.to_vec(),
-            )
-            .algorithm(iana::Algorithm::ES384)
-            .build(),
+            coset::CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_384, x.to_vec(), y.to_vec())
+                .algorithm(iana::Algorithm::ES384)
+                .build(),
         ))
     }
 }
@@ -116,13 +102,8 @@ impl TryFrom<&p384::ecdsa::SigningKey> for CoseKey {
         );
         let d = sk.to_bytes();
         Ok(Self(
-            coset::CoseKeyBuilder::new_ec2_priv_key(
-                iana::EllipticCurve::P_384,
-                x.to_vec(),
-                y.to_vec(),
-                d.to_vec(),
-            )
-            .build(),
+            coset::CoseKeyBuilder::new_ec2_priv_key(iana::EllipticCurve::P_384, x.to_vec(), y.to_vec(), d.to_vec())
+                .build(),
         ))
     }
 }
@@ -154,9 +135,7 @@ impl TryFrom<&CoseKey> for p384::PublicKey {
         else {
             return Err(CoseKeyError::MissingCrv);
         };
-        let crv: i64 = (*crv)
-            .try_into()
-            .map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
+        let crv: i64 = (*crv).try_into().map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
 
         if crv != iana::EllipticCurve::P_384.to_i64() {
             return Err(CoseKeyError::UnknownCurve(crv));
@@ -224,9 +203,7 @@ impl TryFrom<&CoseKey> for p384::SecretKey {
         else {
             return Err(CoseKeyError::MissingCrv);
         };
-        let crv: i64 = (*crv)
-            .try_into()
-            .map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
+        let crv: i64 = (*crv).try_into().map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
 
         if crv != iana::EllipticCurve::P_384.to_i64() {
             return Err(CoseKeyError::UnknownCurve(crv));
@@ -344,9 +321,7 @@ impl TryFrom<&CoseKey> for p384::ecdsa::SigningKey {
         else {
             return Err(CoseKeyError::MissingCrv);
         };
-        let crv: i64 = (*crv)
-            .try_into()
-            .map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
+        let crv: i64 = (*crv).try_into().map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
 
         if crv != iana::EllipticCurve::P_384.to_i64() {
             return Err(CoseKeyError::UnknownCurve(crv));
