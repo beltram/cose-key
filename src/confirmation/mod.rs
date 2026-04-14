@@ -172,10 +172,10 @@ mod ed25519 {
 
     /// See https://datatracker.ietf.org/doc/html/rfc8152#section-8.2
     impl TryFrom<&ed25519_dalek::VerifyingKey> for KeyConfirmation {
-        type Error = error::CoseKeyConfirmationError;
+        type Error = CoseKeyConfirmationError;
 
         fn try_from(pk: &ed25519_dalek::VerifyingKey) -> Result<Self, Self::Error> {
-            Ok(Self::CoseKey(crate::CoseKey::from(pk)))
+            Ok(Self::CoseKey(crate::CoseKey::try_from(pk)?))
         }
     }
 
