@@ -160,7 +160,7 @@ mod tests {
         let msg = b"Hello world !";
         let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
         let signature = sk.sign(msg).to_vec();
-        let cose_key = CoseKey::from(&sk);
+        let cose_key = CoseKey::try_from(&sk).unwrap();
         let cose_key_signature = cose_key.sign(msg).to_vec();
         assert_eq!(signature, cose_key_signature);
     }
@@ -170,7 +170,7 @@ mod tests {
         let msg = b"Hello world !";
         let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
         let signature = sk.sign(msg).to_vec();
-        let cose_key = CoseKey::from(&sk);
+        let cose_key = CoseKey::try_from(&sk).unwrap();
         cose_key.verify(msg, &signature).unwrap();
     }
 

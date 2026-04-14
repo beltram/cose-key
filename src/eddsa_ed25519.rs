@@ -15,9 +15,12 @@ impl EcdsaCoseKeyExt for ed25519_dalek::VerifyingKey {
 }
 
 /// See https://datatracker.ietf.org/doc/html/rfc8152#section-8.2
-impl From<&ed25519_dalek::VerifyingKey> for CoseKey {
-    fn from(pk: &ed25519_dalek::VerifyingKey) -> Self {
-        Self(
+#[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
+impl TryFrom<&ed25519_dalek::VerifyingKey> for CoseKey {
+    type Error = core::convert::Infallible;
+
+    fn try_from(pk: &ed25519_dalek::VerifyingKey) -> Result<Self, Self::Error> {
+        Ok(Self(
             coset::CoseKeyBuilder::new_okp_key()
                 .algorithm(iana::Algorithm::EdDSA)
                 .param(iana::OkpKeyParameter::X.to_i64(), Value::Bytes(pk.as_bytes().into()))
@@ -26,19 +29,25 @@ impl From<&ed25519_dalek::VerifyingKey> for CoseKey {
                     Value::Integer(iana::EllipticCurve::Ed25519.to_i64().into()),
                 )
                 .build(),
-        )
+        ))
     }
 }
 
-impl From<ed25519_dalek::VerifyingKey> for CoseKey {
-    fn from(pk: ed25519_dalek::VerifyingKey) -> Self {
-        (&pk).into()
+#[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
+impl TryFrom<ed25519_dalek::VerifyingKey> for CoseKey {
+    type Error = core::convert::Infallible;
+
+    fn try_from(pk: ed25519_dalek::VerifyingKey) -> Result<Self, Self::Error> {
+        (&pk).try_into()
     }
 }
 
-impl From<&ed25519_dalek::SigningKey> for CoseKey {
-    fn from(sk: &ed25519_dalek::SigningKey) -> Self {
-        Self(
+#[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
+impl TryFrom<&ed25519_dalek::SigningKey> for CoseKey {
+    type Error = core::convert::Infallible;
+
+    fn try_from(sk: &ed25519_dalek::SigningKey) -> Result<Self, Self::Error> {
+        Ok(Self(
             coset::CoseKeyBuilder::new_okp_key()
                 .algorithm(iana::Algorithm::EdDSA)
                 .param(
@@ -51,13 +60,16 @@ impl From<&ed25519_dalek::SigningKey> for CoseKey {
                     Value::Integer(iana::EllipticCurve::Ed25519.to_i64().into()),
                 )
                 .build(),
-        )
+        ))
     }
 }
 
-impl From<ed25519_dalek::SigningKey> for CoseKey {
-    fn from(sk: ed25519_dalek::SigningKey) -> Self {
-        (&sk).into()
+#[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
+impl TryFrom<ed25519_dalek::SigningKey> for CoseKey {
+    type Error = core::convert::Infallible;
+
+    fn try_from(sk: ed25519_dalek::SigningKey) -> Result<Self, Self::Error> {
+        (&sk).try_into()
     }
 }
 
@@ -193,7 +205,7 @@ mod tests {
     #[test]
     fn public_key_should_roundtrip() {
         let pk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng()).verifying_key();
-        let cose_key = CoseKey::from(&pk);
+        let cose_key = CoseKey::try_from(&pk).unwrap();
         assert!(!cose_key.is_private());
         let pk_from_cose = ed25519_dalek::VerifyingKey::try_from(&cose_key).unwrap();
         assert_eq!(pk, pk_from_cose);
@@ -202,7 +214,7 @@ mod tests {
     #[test]
     fn private_key_should_roundtrip() {
         let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
-        let cose_key = CoseKey::from(&sk);
+        let cose_key = CoseKey::try_from(&sk).unwrap();
         assert!(cose_key.is_private());
         let sk_from_cose = ed25519_dalek::SigningKey::try_from(&cose_key).unwrap();
         assert_eq!(sk, sk_from_cose);
@@ -211,7 +223,7 @@ mod tests {
     #[test]
     fn can_build_public_key_from_private_cose_key() {
         let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
-        let cose_key = CoseKey::from(&sk);
+        let cose_key = CoseKey::try_from(&sk).unwrap();
         ed25519_dalek::VerifyingKey::try_from(&cose_key).unwrap();
     }
 }

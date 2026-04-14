@@ -29,7 +29,7 @@ mod tests {
     #[test]
     fn ed25519_ser_de_should_roundtrip() {
         let ed25519_sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
-        let cose_key = CoseKey::from(ed25519_sk);
+        let cose_key = CoseKey::try_from(ed25519_sk).unwrap();
         let ser_value = ciborium::Value::serialized(&cose_key).unwrap();
         let de = ser_value.deserialized::<CoseKey>().unwrap();
         assert_eq!(cose_key, de);

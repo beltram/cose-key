@@ -70,7 +70,7 @@ mod tests {
     fn from_public_key_pem_should_succeed() {
         // Ed25519
         let vk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng()).verifying_key();
-        let ck = CoseKey::from(&vk);
+        let ck = CoseKey::try_from(&vk).unwrap();
 
         let pem = vk.to_public_key_pem(LF).unwrap();
         let ck_pem = CoseKey::from_public_key_pem::<ed25519_dalek::VerifyingKey, _>(&pem).unwrap();
