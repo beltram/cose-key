@@ -1,6 +1,8 @@
 #[cfg(feature = "bls")]
 mod bls;
 mod codec;
+#[cfg(feature = "confirmation")]
+pub mod confirmation;
 #[cfg(feature = "p256")]
 mod ecdsa_p256;
 #[cfg(feature = "p384")]
@@ -8,10 +10,19 @@ mod ecdsa_p384;
 #[cfg(feature = "ed25519")]
 mod eddsa_ed25519;
 mod error;
+#[cfg(feature = "keyset")]
+pub mod keyset;
 #[cfg(feature = "pem")]
 mod pem;
 #[cfg(feature = "signature")]
 mod signature;
+#[cfg(feature = "thumbprint")]
+pub mod thumbprint;
+
+pub mod reexports {
+    pub use ciborium;
+    pub use coset;
+}
 
 use ciborium::Value;
 use coset::{Algorithm, KeyOperation, KeyType, Label, iana, iana::EnumI64};
@@ -100,9 +111,7 @@ impl CoseKey {
     pub fn crv(&self) -> Option<iana::EllipticCurve> {
         self.params
             .iter()
-            .find_map(|(k, v)| {
-                matches!(k, Label::Int(i) if *i == iana::OkpKeyParameter::Crv.to_i64()).then_some(v)
-            })
+            .find_map(|(k, v)| matches!(k, Label::Int(i) if *i == iana::OkpKeyParameter::Crv.to_i64()).then_some(v))
             .and_then(Value::as_integer)
             .and_then(|i| i64::try_from(i).ok())
             .and_then(iana::EllipticCurve::from_i64)
@@ -118,6 +127,21 @@ impl CoseKey {
                 .params
                 .retain(|(label, _)| label != &Label::Int(iana::Ec2KeyParameter::D.to_i64())),
             _ => {}
+        }
+    }
+
+    /// Help identifying a private key, for example to prevent inserting one in a CoseKeySet
+    pub fn is_private(&self) -> bool {
+        match self.kty {
+            KeyType::Assigned(iana::KeyType::OKP) => self
+                .params
+                .iter()
+                .any(|(label, _)| label == &Label::Int(iana::OkpKeyParameter::D.to_i64())),
+            KeyType::Assigned(iana::KeyType::EC2) => self
+                .params
+                .iter()
+                .any(|(label, _)| label == &Label::Int(iana::Ec2KeyParameter::D.to_i64())),
+            _ => false,
         }
     }
 }
@@ -155,3 +179,41 @@ pub trait CoseKeyExt {
 pub trait EcdsaCoseKeyExt: CoseKeyExt {
     fn crv() -> iana::EllipticCurve;
 }
+
+#[allow(unused)]
+pub(crate) trait CborExt: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone {
+    fn to_cbor_bytes(&self) -> Result<Vec<u8>, ciborium::ser::Error<core::convert::Infallible>> {
+        let mut buf = vec![];
+        ciborium::into_writer(self, &mut buf)?;
+        Ok(buf)
+    }
+
+    /// Uses CBOR Canonical encoding (CDE)
+    fn to_cbor_cde_bytes(&self) -> Result<Vec<u8>, ciborium::ser::Error<core::convert::Infallible>> {
+        let mut buf = vec![];
+        ciborium::value::canonical_into_writer(self, &mut buf)?;
+        Ok(buf)
+    }
+
+    fn from_cbor_bytes(bytes: &[u8]) -> Result<Vec<u8>, ciborium::de::Error<String>>
+    where
+        Self: Sized,
+    {
+        ciborium::from_reader(bytes).map_err(|err| match err {
+            ciborium::de::Error::Io(io) => ciborium::de::Error::Io(format!("{io:?}")),
+            ciborium::de::Error::Syntax(s) => ciborium::de::Error::Syntax(s),
+            ciborium::de::Error::Semantic(a, b) => ciborium::de::Error::Semantic(a, b),
+            ciborium::de::Error::RecursionLimitExceeded => ciborium::de::Error::RecursionLimitExceeded,
+        })
+    }
+
+    fn to_cbor_value(&self) -> Result<Value, ciborium::value::Error> {
+        Value::serialized(self)
+    }
+
+    fn from_cbor_value(value: &Value) -> Result<Self, ciborium::value::Error> {
+        value.deserialized::<Self>()
+    }
+}
+
+impl<T> CborExt for T where T: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone {}

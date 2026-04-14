@@ -95,9 +95,7 @@ impl TryFrom<&CoseKey> for BbsPublicKey {
         else {
             return Err(CoseKeyError::MissingCrv);
         };
-        let crv: i64 = (*crv)
-            .try_into()
-            .map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
+        let crv: i64 = (*crv).try_into().map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
 
         if crv != TBD_BLS12381G1 {
             return Err(CoseKeyError::UnknownCurve(crv));
@@ -145,9 +143,7 @@ impl TryFrom<&CoseKey> for BbsPrivateKey {
         else {
             return Err(CoseKeyError::MissingCrv);
         };
-        let crv: i64 = (*crv)
-            .try_into()
-            .map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
+        let crv: i64 = (*crv).try_into().map_err(CoseKeyError::InvalidCborIntegerClaimKey)?;
 
         if crv != TBD_BLS12381G1 {
             return Err(CoseKeyError::UnknownCurve(crv));

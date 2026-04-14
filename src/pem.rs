@@ -1,13 +1,9 @@
 use crate::{CoseKey, CoseKeyError};
 use ciborium::Value;
-use coset::iana::EnumI64 as _;
-use coset::{Label, iana};
+use coset::{Label, iana, iana::EnumI64 as _};
 
 impl CoseKey {
-    pub fn from_public_key_pem<
-        K: pkcs8::DecodePublicKey + TryInto<Self, Error = E>,
-        E: Into<CoseKeyError>,
-    >(
+    pub fn from_public_key_pem<K: pkcs8::DecodePublicKey + TryInto<Self, Error = E>, E: Into<CoseKeyError>>(
         s: &str,
     ) -> Result<Self, CoseKeyError> {
         K::from_public_key_pem(s)?.try_into().map_err(Into::into)
@@ -37,45 +33,24 @@ impl pkcs8::EncodePublicKey for CoseKey {
 
         match (kty, alg, params) {
             #[cfg(feature = "ed25519")]
-            (
-                coset::KeyType::Assigned(iana::KeyType::OKP),
-                coset::Algorithm::Assigned(iana::Algorithm::EdDSA),
-                p,
-            ) if crv(
-                p,
-                iana::OkpKeyParameter::Crv.to_i64(),
-                iana::EllipticCurve::Ed25519,
-            ) =>
+            (coset::KeyType::Assigned(iana::KeyType::OKP), coset::Algorithm::Assigned(iana::Algorithm::EdDSA), p)
+                if crv(p, iana::OkpKeyParameter::Crv.to_i64(), iana::EllipticCurve::Ed25519) =>
             {
                 ed25519_dalek::VerifyingKey::try_from(self)
                     .map_err(|_| pkcs8::spki::Error::KeyMalformed)?
                     .to_public_key_der()
             }
             #[cfg(feature = "p256")]
-            (
-                coset::KeyType::Assigned(iana::KeyType::EC2),
-                coset::Algorithm::Assigned(iana::Algorithm::ES256),
-                p,
-            ) if crv(
-                p,
-                iana::OkpKeyParameter::Crv.to_i64(),
-                iana::EllipticCurve::P_256,
-            ) =>
+            (coset::KeyType::Assigned(iana::KeyType::EC2), coset::Algorithm::Assigned(iana::Algorithm::ES256), p)
+                if crv(p, iana::OkpKeyParameter::Crv.to_i64(), iana::EllipticCurve::P_256) =>
             {
                 p256::ecdsa::VerifyingKey::try_from(self)
                     .map_err(|_| pkcs8::spki::Error::KeyMalformed)?
                     .to_public_key_der()
             }
             #[cfg(feature = "p384")]
-            (
-                coset::KeyType::Assigned(iana::KeyType::EC2),
-                coset::Algorithm::Assigned(iana::Algorithm::ES384),
-                p,
-            ) if crv(
-                p,
-                iana::OkpKeyParameter::Crv.to_i64(),
-                iana::EllipticCurve::P_384,
-            ) =>
+            (coset::KeyType::Assigned(iana::KeyType::EC2), coset::Algorithm::Assigned(iana::Algorithm::ES384), p)
+                if crv(p, iana::OkpKeyParameter::Crv.to_i64(), iana::EllipticCurve::P_384) =>
             {
                 p384::ecdsa::VerifyingKey::try_from(self)
                     .map_err(|_| pkcs8::spki::Error::KeyMalformed)?
