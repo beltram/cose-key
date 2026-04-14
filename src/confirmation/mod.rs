@@ -302,7 +302,7 @@ mod ec_p384 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CborExt as _, confirmation::KeyConfirmation, thumbprint::CoseKeyThumbprint};
+    use crate::{confirmation::KeyConfirmation, thumbprint::CoseKeyThumbprint};
     use ciborium::{Value, cbor};
     use coset::iana;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -327,6 +327,7 @@ mod tests {
                 /*y*/ -3 => y,
             }
         });
+
         let expected = expected.unwrap().to_cbor_bytes().unwrap();
 
         assert_eq!(cnf.to_cbor_bytes().unwrap(), expected);
@@ -364,4 +365,14 @@ mod tests {
         let cnf = KeyConfirmation::new_thumbprint(pk).unwrap();
         assert_eq!(cnf.to_cbor_bytes().unwrap(), expected);
     }
+
+    trait CborExt: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone {
+        fn to_cbor_bytes(&self) -> Result<Vec<u8>, ciborium::ser::Error<core::convert::Infallible>> {
+            let mut buf = vec![];
+            ciborium::into_writer(self, &mut buf)?;
+            Ok(buf)
+        }
+    }
+
+    impl<T> CborExt for T where T: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone {}
 }
