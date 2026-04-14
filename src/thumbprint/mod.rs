@@ -37,6 +37,12 @@ impl<const N: usize> std::ops::Deref for CoseKeyThumbprint<N> {
     }
 }
 
+impl<const N: usize> From<[u8; N]> for CoseKeyThumbprint<N> {
+    fn from(value: [u8; N]) -> Self {
+        Self(value)
+    }
+}
+
 macro_rules! thumbprint_compute {
     ($length:literal, $size:ty) => {
         impl CoseKeyThumbprint<$length> {
