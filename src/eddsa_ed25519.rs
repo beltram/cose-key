@@ -17,7 +17,7 @@ impl EcdsaCoseKeyExt for ed25519_dalek::VerifyingKey {
 /// See https://datatracker.ietf.org/doc/html/rfc8152#section-8.2
 #[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
 impl TryFrom<&ed25519_dalek::VerifyingKey> for CoseKey {
-    type Error = core::convert::Infallible;
+    type Error = CoseKeyError;
 
     fn try_from(pk: &ed25519_dalek::VerifyingKey) -> Result<Self, Self::Error> {
         Ok(Self(
@@ -35,7 +35,7 @@ impl TryFrom<&ed25519_dalek::VerifyingKey> for CoseKey {
 
 #[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
 impl TryFrom<ed25519_dalek::VerifyingKey> for CoseKey {
-    type Error = core::convert::Infallible;
+    type Error = CoseKeyError;
 
     fn try_from(pk: ed25519_dalek::VerifyingKey) -> Result<Self, Self::Error> {
         (&pk).try_into()
@@ -44,7 +44,7 @@ impl TryFrom<ed25519_dalek::VerifyingKey> for CoseKey {
 
 #[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
 impl TryFrom<&ed25519_dalek::SigningKey> for CoseKey {
-    type Error = core::convert::Infallible;
+    type Error = CoseKeyError;
 
     fn try_from(sk: &ed25519_dalek::SigningKey) -> Result<Self, Self::Error> {
         Ok(Self(
@@ -66,7 +66,7 @@ impl TryFrom<&ed25519_dalek::SigningKey> for CoseKey {
 
 #[allow(clippy::infallible_try_from)] // required for specifying generic bounds because NIST P-curves conversion is fallible
 impl TryFrom<ed25519_dalek::SigningKey> for CoseKey {
-    type Error = core::convert::Infallible;
+    type Error = CoseKeyError;
 
     fn try_from(sk: ed25519_dalek::SigningKey) -> Result<Self, Self::Error> {
         (&sk).try_into()
