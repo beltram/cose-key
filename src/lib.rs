@@ -19,6 +19,9 @@ mod signature;
 #[cfg(feature = "thumbprint")]
 pub mod thumbprint;
 
+mod debug;
+mod eq;
+
 pub mod reexports {
     pub use ciborium;
     pub use coset;
@@ -28,7 +31,8 @@ use ciborium::Value;
 use coset::{Algorithm, KeyOperation, KeyType, Label, iana, iana::EnumI64};
 pub use error::CoseKeyError;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone)]
+#[repr(transparent)]
 pub struct CoseKey(coset::CoseKey);
 
 #[cfg(feature = "zeroize")]
@@ -164,6 +168,12 @@ impl CoseKey {
                 .retain(|(label, _)| label != &Label::Int(iana::Ec2KeyParameter::D.to_i64())),
             _ => {}
         }
+    }
+
+    /// Help identifying a public key
+    #[inline(always)]
+    pub fn is_public(&self) -> bool {
+        !self.is_private()
     }
 
     /// Help identifying a private key, for example to prevent inserting one in a CoseKeySet
