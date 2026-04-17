@@ -31,6 +31,42 @@ pub use error::CoseKeyError;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CoseKey(coset::CoseKey);
 
+#[cfg(feature = "zeroize")]
+impl zeroize::ZeroizeOnDrop for CoseKey {}
+
+#[cfg(feature = "zeroize")]
+impl zeroize::Zeroize for CoseKey {
+    fn zeroize(&mut self) {
+        self.base_iv.zeroize();
+        // zeroizing the param values is enough, this is where the ECC points live
+        for (_, value) in &mut self.params {
+            zeroize_value(value)
+        }
+    }
+}
+
+#[cfg(feature = "zeroize")]
+fn zeroize_value(value: &mut Value) {
+    use zeroize::Zeroize as _;
+    match value {
+        Value::Bytes(b) => b.zeroize(),
+        Value::Text(s) => s.zeroize(),
+        Value::Tag(_, v) => zeroize_value(v.as_mut()),
+        Value::Array(array) => {
+            for v in array {
+                zeroize_value(v);
+            }
+        }
+        Value::Map(map) => {
+            for (k, v) in map {
+                zeroize_value(k);
+                zeroize_value(v);
+            }
+        }
+        _ => {}
+    }
+}
+
 impl std::hash::Hash for CoseKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match &self.kty {
