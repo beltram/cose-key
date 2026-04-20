@@ -5,7 +5,7 @@ mod error;
 pub use error::CoseKeyThumbprintError;
 
 /// A COSE Key Thumbprint as defined in [RFC 9679](https://datatracker.ietf.org/doc/html/rfc9679)
-#[derive(Debug, Copy, Clone, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Hash, serde::Serialize, serde::Deserialize)]
 #[repr(transparent)]
 #[serde(transparent)]
 pub struct CoseKeyThumbprint<const N: usize = 32>(#[serde(with = "serde_bytes")] [u8; N]);
@@ -24,6 +24,12 @@ impl PartialEq for CoseKeyThumbprint {
 }
 
 impl<const N: usize> std::fmt::Display for CoseKeyThumbprint<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", hex::encode(self.0))
+    }
+}
+
+impl<const N: usize> std::fmt::Debug for CoseKeyThumbprint<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", hex::encode(self.0))
     }
