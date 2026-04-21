@@ -16,6 +16,8 @@ impl<const N: usize> subtle::ConstantTimeEq for CoseKeyThumbprint<N> {
     }
 }
 
+impl Eq for CoseKeyThumbprint {}
+
 impl PartialEq for CoseKeyThumbprint {
     fn eq(&self, other: &Self) -> bool {
         use subtle::ConstantTimeEq as _;
