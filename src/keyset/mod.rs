@@ -56,7 +56,11 @@ impl CoseKeySetBuilder {
         K: signature::Verifier<S>,
         for<'a> &'a K: TryInto<crate::CoseKey, Error: Into<CoseKeySetError>>,
     {
-        if !self.keys.insert(key.try_into().map_err(Into::into)?) {
+        let cose_key = key.try_into().map_err(Into::into)?;
+        if cose_key.is_private() {
+            return Err(CoseKeySetError::PrivateKey);
+        }
+        if !self.keys.insert(cose_key) {
             return Err(CoseKeySetError::DuplicateKey);
         }
         Ok(())

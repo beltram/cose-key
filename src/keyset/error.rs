@@ -4,6 +4,8 @@ pub enum CoseKeySetError {
     CoseKeyError(#[from] crate::CoseKeyError),
     #[error("Duplicate key")]
     DuplicateKey,
+    #[error("PrivateKey in KeySet")]
+    PrivateKey,
     #[error(transparent)]
     UnknownError(#[from] core::convert::Infallible),
 }
