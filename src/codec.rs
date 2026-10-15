@@ -124,6 +124,36 @@ impl<'de> serde::Deserialize<'de> for CoseKey {
                     }
                 }
             }
+            #[cfg(feature = "ml-dsa-44")]
+            KeyType::Assigned(iana::KeyType::AKP) => {
+                let (mut private, mut public) = (None, None);
+
+                cose_key.params.iter().for_each(|(label, value)| match (label, value) {
+                    (Label::Int(i), Value::Bytes(b)) if *i == iana::AkpKeyParameter::Priv.to_i64() => {
+                        private.replace(b);
+                    }
+                    (Label::Int(i), Value::Bytes(b)) if *i == iana::AkpKeyParameter::Pub.to_i64() => {
+                        public.replace(b);
+                    }
+                    _ => {}
+                });
+
+                // unless 'pub' is already set, we try deducing it from the seed
+                if public.is_none()
+                    && cose_key.alg() == Some(iana::Algorithm::ML_DSA_44)
+                    && let Some(seed) = private
+                {
+                    use ml_dsa::Keypair as _;
+                    let seed: [u8; 32] = seed[..]
+                        .try_into()
+                        .map_err(|_| D::Error::custom("invalid ML-DSA seed size"))?;
+                    let sk = ml_dsa::SigningKey::<ml_dsa::MlDsa44>::from_seed(&seed.into());
+                    cose_key.params.push((
+                        Label::Int(iana::AkpKeyParameter::Pub.to_i64()),
+                        Value::Bytes(sk.verifying_key().encode().to_vec()),
+                    ));
+                }
+            }
             _ => {}
         }
 
@@ -155,6 +185,19 @@ impl serde::Serialize for CoseKeySlim<'_> {
                 *label != Label::Int(iana::Ec2KeyParameter::X.to_i64())
                     || *label != Label::Int(iana::Ec2KeyParameter::Y.to_i64())
             }),
+            // for ML-DSA the private key is the seed from which the public key can be derived
+            // see https://www.rfc-editor.org/rfc/rfc9964#section-4
+            KeyType::Assigned(iana::KeyType::AKP)
+                if key.is_private()
+                    && matches!(
+                        key.alg(),
+                        Some(iana::Algorithm::ML_DSA_44 | iana::Algorithm::ML_DSA_65 | iana::Algorithm::ML_DSA_87)
+                    ) =>
+            {
+                key.0
+                    .params
+                    .retain(|(label, _)| *label != Label::Int(iana::AkpKeyParameter::Pub.to_i64()))
+            }
             _ => {}
         }
         key.0.to_cbor_value().map_err(S::Error::custom)?.serialize(serializer)
@@ -226,6 +269,39 @@ mod tests {
         let ser_value = Value::serialized(&cose_key_slim).unwrap();
         let de = ser_value.deserialized::<CoseKey>().unwrap();
         assert_eq!(cose_key_slim, de.as_slim());
+
+        let mut ser_bytes = vec![];
+        ciborium::into_writer(&cose_key, &mut ser_bytes).unwrap();
+        let de = ciborium::from_reader::<CoseKey, _>(&ser_bytes[..]).unwrap();
+        assert_eq!(cose_key, de);
+
+        let mut ser_bytes = vec![];
+        ciborium::into_writer(&cose_key.as_slim(), &mut ser_bytes).unwrap();
+        let de = ciborium::from_reader::<CoseKey, _>(&ser_bytes[..]).unwrap();
+        assert_eq!(cose_key, de);
+    }
+
+    #[test]
+    fn ml_dsa_44_ser_de_should_roundtrip() {
+        let seed = rand::random::<[u8; 32]>();
+        let ml_dsa_sk = ml_dsa::SigningKey::<ml_dsa::MlDsa44>::from_seed(&seed.into());
+        let cose_key = CoseKey::try_from(ml_dsa_sk).unwrap();
+        let ser_value = Value::serialized(&cose_key).unwrap();
+        let de = ser_value.deserialized::<CoseKey>().unwrap();
+        assert_eq!(cose_key, de);
+
+        let cose_key_slim = cose_key.as_slim();
+        let ser_value = Value::serialized(&cose_key_slim).unwrap();
+        assert!(
+            !ser_value
+                .as_map()
+                .unwrap()
+                .iter()
+                .any(|(k, _)| k == &Value::from(iana::AkpKeyParameter::Pub.to_i64()))
+        );
+        let de = ser_value.deserialized::<CoseKey>().unwrap();
+        assert_eq!(cose_key_slim, de.as_slim());
+        assert_eq!(cose_key, de);
 
         let mut ser_bytes = vec![];
         ciborium::into_writer(&cose_key, &mut ser_bytes).unwrap();

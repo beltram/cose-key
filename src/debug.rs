@@ -56,6 +56,11 @@ impl std::fmt::Debug for CoseKey {
                         {
                             (label, hex::encode(b))
                         }
+                        (KeyType::Assigned(iana::KeyType::AKP), Label::Int(i), Value::Bytes(b))
+                            if *i == iana::AkpKeyParameter::Pub.to_i64() =>
+                        {
+                            (label, hex::encode(b))
+                        }
                         // === Curve ===
                         (KeyType::Assigned(iana::KeyType::OKP), Label::Int(i), Value::Integer(crv))
                             if *i == iana::OkpKeyParameter::Crv.to_i64()

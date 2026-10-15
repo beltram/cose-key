@@ -21,6 +21,10 @@ pub enum CoseKeyError {
     InvalidAlg(coset::iana::Algorithm, coset::iana::Algorithm),
     #[error("Missing 'crv' claim")]
     MissingCrv,
+    #[error("Missing 'alg' claim")]
+    MissingAlg,
+    #[error("Missing key parameter '{0}'")]
+    MissingKeyParam(&'static str),
     #[error("Missing EC point '{0}'")]
     MissingPoint(&'static str),
     #[error("Invalid key length ; expected '{0}' got '{1}'")]

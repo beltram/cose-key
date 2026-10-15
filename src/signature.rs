@@ -8,9 +8,11 @@ use signature::{Signer, Verifier};
 
 #[cfg(all(
     feature = "signature",
-    not(any(feature = "ed25519", feature = "p256", feature = "p384"))
+    not(any(feature = "ed25519", feature = "p256", feature = "p384", feature = "ml-dsa-44"))
 ))]
-compile_error!("At least one feature of ['ed25519', 'p256', 'p384'] has to be enabled alongside 'signature' feature");
+compile_error!(
+    "At least one feature of ['ed25519', 'p256', 'p384', 'ml-dsa-44'] has to be enabled alongside 'signature' feature"
+);
 
 impl Signer<Vec<u8>> for CoseKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Vec<u8>, signature::Error> {
@@ -75,6 +77,23 @@ impl Signer<Vec<u8>> for CoseKey {
                     _ => Err(signature::Error::from_source("Unsupported curve")),
                 }
             }
+            KeyType::Assigned(iana::KeyType::AKP) => match self.alg() {
+                #[cfg(feature = "ml-dsa-44")]
+                Some(iana::Algorithm::ML_DSA_44) => {
+                    let sk = ml_dsa::SigningKey::<ml_dsa::MlDsa44>::try_from(self)
+                        .map_err(|_| signature::Error::from_source("Invalid ML-DSA-44 CoseKey"))?;
+                    // deterministic variant with an empty context
+                    // see https://www.rfc-editor.org/rfc/rfc9964#section-5
+                    let signature = ml_dsa::Signer::try_sign(&sk, msg)
+                        .map_err(|_| signature::Error::from_source("ML-DSA-44 signing failed"))?;
+                    Ok(signature.encode().to_vec())
+                }
+                #[cfg(not(feature = "ml-dsa-44"))]
+                Some(iana::Algorithm::ML_DSA_44) => Err(signature::Error::from_source(
+                    "You must turn on the 'ml-dsa-44' feature to use this",
+                )),
+                _ => Err(signature::Error::from_source("Unsupported algorithm")),
+            },
             _ => Err(signature::Error::from_source("Unsupported key type")),
         }
     }
@@ -146,6 +165,22 @@ impl Verifier<Vec<u8>> for CoseKey {
                     _ => Err(signature::Error::from_source("Unsupported curve")),
                 }
             }
+            KeyType::Assigned(iana::KeyType::AKP) => match self.alg() {
+                #[cfg(feature = "ml-dsa-44")]
+                Some(iana::Algorithm::ML_DSA_44) => {
+                    let vk = ml_dsa::VerifyingKey::<ml_dsa::MlDsa44>::try_from(self)
+                        .map_err(|_| signature::Error::from_source("Invalid ML-DSA-44 CoseKey"))?;
+                    let signature = ml_dsa::Signature::<ml_dsa::MlDsa44>::try_from(signature.as_slice())
+                        .map_err(|_| signature::Error::from_source("Invalid ML-DSA-44 signature"))?;
+                    ml_dsa::Verifier::verify(&vk, msg, &signature)
+                        .map_err(|_| signature::Error::from_source("ML-DSA-44 signature verification failed"))
+                }
+                #[cfg(not(feature = "ml-dsa-44"))]
+                Some(iana::Algorithm::ML_DSA_44) => Err(signature::Error::from_source(
+                    "You must turn on the 'ml-dsa-44' feature to use this",
+                )),
+                _ => Err(signature::Error::from_source("Unsupported algorithm")),
+            },
             _ => Err(signature::Error::from_source("Unsupported key type")),
         }
     }
@@ -210,5 +245,29 @@ mod tests {
         let signature = Signer::<p384::ecdsa::Signature>::sign(&sk, msg).to_vec();
         let cose_key = CoseKey::try_from(&sk).unwrap();
         cose_key.verify(msg, &signature).unwrap();
+    }
+
+    #[test]
+    fn should_sign_ml_dsa_44() {
+        let msg = b"Hello world !";
+        let sk = ml_dsa::SigningKey::<ml_dsa::MlDsa44>::from_seed(&rand::random::<[u8; 32]>().into());
+        let signature = ml_dsa::Signer::sign(&sk, msg).encode().to_vec();
+        let cose_key = CoseKey::try_from(&sk).unwrap();
+        let cose_key_signature = cose_key.sign(msg);
+        assert_eq!(signature, cose_key_signature);
+    }
+
+    #[test]
+    fn should_verify_ml_dsa_44() {
+        let msg = b"Hello world !";
+        let sk = ml_dsa::SigningKey::<ml_dsa::MlDsa44>::from_seed(&rand::random::<[u8; 32]>().into());
+        let signature = ml_dsa::Signer::sign(&sk, msg).encode().to_vec();
+        let cose_key = CoseKey::try_from(&sk).unwrap();
+        cose_key.verify(msg, &signature).unwrap();
+
+        // also from a public key
+        let cose_key = CoseKey::try_from(ml_dsa::Keypair::verifying_key(&sk)).unwrap();
+        cose_key.verify(msg, &signature).unwrap();
+        assert!(cose_key.verify(b"another message", &signature).is_err());
     }
 }

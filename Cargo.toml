@@ -16,6 +16,7 @@ ed25519 = ["dep:ed25519-dalek"]
 p256 = ["dep:p256"]
 p384 = ["dep:p384"]
 bls = ["dep:bls-signatures"]
+ml-dsa-44 = ["dep:ml-dsa"]
 pem = ["dep:pkcs8", "pkcs8/pem", "ed25519-dalek?/pem", "p256?/pem", "p384?/pem"]
 signature = ["dep:signature"]
 thumbprint = ["dep:serde_bytes", "dep:digest"]
@@ -31,6 +32,7 @@ ed25519-dalek = { version = "2.2", default-features = false, optional = true }
 p256 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
 p384 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
 bls-signatures = { version = "0.15", optional = true }
+ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc"], optional = true }
 pkcs8 = { version = "0.10", optional = true, features = ["std"] }
 subtle = { version = "2.4", default-features = false, features = ["i128"] }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
@@ -54,12 +56,13 @@ branch = "cose-key"
 default-features = false
 
 [dev-dependencies]
-cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem", "bls", "signature", "thumbprint", "keyset", "confirmation"] }
+cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem", "bls", "ml-dsa-44", "signature", "thumbprint", "keyset", "confirmation"] }
 wasm-bindgen-test = "0.3"
 rand = "0.8"
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 p256 = { version = "0.13" }
 getrandom = { version = "0.2", features = ["js"] }
+serde_json = "1"
 
 [workspace.lints.clippy]
 # Enforced Groups
