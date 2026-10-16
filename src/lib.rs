@@ -12,6 +12,8 @@ mod eddsa_ed25519;
 mod error;
 #[cfg(feature = "keyset")]
 pub mod keyset;
+#[cfg(feature = "ml-dsa-44")]
+mod ml_dsa_44;
 #[cfg(feature = "pem")]
 mod pem;
 #[cfg(feature = "signature")]
@@ -166,6 +168,9 @@ impl CoseKey {
             KeyType::Assigned(iana::KeyType::EC2) => self
                 .params
                 .retain(|(label, _)| label != &Label::Int(iana::Ec2KeyParameter::D.to_i64())),
+            KeyType::Assigned(iana::KeyType::AKP) => self
+                .params
+                .retain(|(label, _)| label != &Label::Int(iana::AkpKeyParameter::Priv.to_i64())),
             _ => {}
         }
     }
@@ -187,6 +192,10 @@ impl CoseKey {
                 .params
                 .iter()
                 .any(|(label, _)| label == &Label::Int(iana::Ec2KeyParameter::D.to_i64())),
+            KeyType::Assigned(iana::KeyType::AKP) => self
+                .params
+                .iter()
+                .any(|(label, _)| label == &Label::Int(iana::AkpKeyParameter::Priv.to_i64())),
             _ => false,
         }
     }

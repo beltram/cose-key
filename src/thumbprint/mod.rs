@@ -155,6 +155,11 @@ impl<const N: usize> CoseKeyThumbprint<N> {
                             _ => false,
                         }
                     }
+                    coset::KeyType::Assigned(iana::KeyType::AKP) => {
+                        // see https://www.rfc-editor.org/rfc/rfc9964#section-6
+                        iana::KeyParameter::from_i64(i) == Some(iana::KeyParameter::Alg)
+                            || iana::AkpKeyParameter::from_i64(i) == Some(iana::AkpKeyParameter::Pub)
+                    }
                     _ => false,
                 }
             }
