@@ -103,6 +103,7 @@ impl TryFrom<&p384::ecdsa::SigningKey> for CoseKey {
         let d = sk.to_bytes();
         Ok(Self(
             coset::CoseKeyBuilder::new_ec2_priv_key(iana::EllipticCurve::P_384, x.to_vec(), y.to_vec(), d.to_vec())
+                .algorithm(iana::Algorithm::ES384)
                 .build(),
         ))
     }

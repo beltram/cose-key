@@ -126,16 +126,14 @@ fn cbor_hex(key: &CoseKey) -> String {
 }
 
 /// Snapshots the private [CoseKey], its public counterpart and verifies [CoseKey::as_public_cose_key]
-/// yields the same public key material.
+/// yields the very same public key.
 fn snapshot_keypair(name: &str, private: CoseKey, public: CoseKey) {
     assert!(private.is_private());
     assert!(public.is_public());
 
-    // only compare key material since e.g. ECDSA signing keys do not set 'alg' whereas verifying keys do
     let mut stripped = private.clone();
     stripped.as_public_cose_key();
-    assert_eq!(stripped.kty, public.kty);
-    assert_eq!(stripped.params, public.params);
+    assert_eq!(stripped, public);
 
     insta::assert_snapshot!(format!("{name}_private"), cbor_hex(&private));
     insta::assert_snapshot!(format!("{name}_public"), cbor_hex(&public));
