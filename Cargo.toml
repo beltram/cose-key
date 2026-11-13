@@ -16,7 +16,7 @@ ed25519 = ["dep:ed25519-dalek"]
 p256 = ["dep:p256"]
 p384 = ["dep:p384"]
 bls = ["dep:bls-signatures"]
-pem = ["dep:pkcs8", "pkcs8/pem", "ed25519-dalek?/pem", "p256?/pem", "p384?/pem"]
+pem = ["dep:pkcs8", "pkcs8/pem", "ed25519-dalek?/pem", "p256?/pem", "p256?/alloc", "p384?/pem", "p384?/alloc"]
 signature = ["dep:signature"]
 thumbprint = ["dep:serde_bytes", "dep:digest"]
 keyset = ["dep:signature"]
@@ -26,19 +26,19 @@ confirmation = ["serde_bytes/alloc"]
 serde = { version = "1.0", default-features = false }
 thiserror = { version = "2.0", default-features = false }
 
-signature = { version = "2.2", default-features = false, features = ["std"], optional = true }
-ed25519-dalek = { version = "2.2", default-features = false, optional = true }
-p256 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
-p384 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
+signature = { version = "3.0", default-features = false, features = ["alloc"], optional = true }
+ed25519-dalek = { version = "3.0", default-features = false, optional = true }
+p256 = { version = "0.14", default-features = false, features = ["ecdsa"], optional = true }
+p384 = { version = "0.14", default-features = false, features = ["ecdsa"], optional = true }
 bls-signatures = { version = "0.15", optional = true }
-pkcs8 = { version = "0.10", optional = true, features = ["std"] }
+pkcs8 = { version = "0.11", optional = true, features = ["std"] }
 subtle = { version = "2.4", default-features = false, features = ["i128"] }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
-sha2 = { version = "0.10", default-features = false }
+sha2 = { version = "0.11", default-features = false }
 
 # thumbprint
 serde_bytes = { version = "0.11", default-features = false, optional = true }
-digest = { version = "0.10", default-features = false, optional = true }
+digest = { version = "0.11", default-features = false, optional = true }
 indexmap = "2.14"
 
 zeroize = { version = "1.8", default-features = false, optional = true }
@@ -56,16 +56,22 @@ default-features = false
 [dev-dependencies]
 cose-key = { path = ".", features = ["ed25519", "p256", "p384", "pem", "bls", "signature", "thumbprint", "keyset", "confirmation"] }
 wasm-bindgen-test = "0.3"
-rand = "0.8"
-ed25519-dalek = { version = "2.2", features = ["rand_core"] }
-p256 = { version = "0.13" }
-getrandom = { version = "0.2", features = ["js"] }
+rand = "0.10"
+# bls-signatures (latest: 0.15) is still on rand_core 0.6
+rand08 = { package = "rand", version = "0.8" }
+ed25519-dalek = { version = "3.0", features = ["rand_core"] }
+p256 = { version = "0.14" }
+getrandom = { version = "0.4", features = ["wasm_js"] }
+# bls-signatures (latest: 0.15) still pulls getrandom 0.2 through rand_core 0.6, which needs 'js' on wasm
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 insta = "1.49"
-dernged = "0.1"
+dernged = "0.2"
+# bls-signatures (latest: 0.15) is still on rand_core 0.6
+dernged01 = { package = "dernged", version = "0.1" }
 
-[workspace.lints.clippy]
+[lints.clippy]
 # Enforced Groups
 style = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
@@ -81,7 +87,6 @@ derive_partial_eq_without_eq = "allow"
 significant_drop_tightening = "allow"  # Allowed due false positives
 trait_duplication_in_bounds = "allow"  # Allowed due false positives
 ## restriction
-string_to_string = "warn"
 rc_mutex = "warn"
 ## Pedantic
 needless_continue = "warn"
@@ -92,7 +97,6 @@ explicit_into_iter_loop = "warn"
 manual_ok_or = "warn"
 indexing_slicing = "warn"
 unused_self = "warn"
-from_iter_instead_of_collect = "warn"
 implicit_clone = "warn"
 inefficient_to_string = "warn"
 large_types_passed_by_value = "warn"

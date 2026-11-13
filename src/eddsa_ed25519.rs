@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn public_key_should_roundtrip() {
-        let pk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng()).verifying_key();
+        let pk = ed25519_dalek::SigningKey::generate(&mut rand::rng()).verifying_key();
         let cose_key = CoseKey::try_from(&pk).unwrap();
         assert!(!cose_key.is_private());
         let pk_from_cose = ed25519_dalek::VerifyingKey::try_from(&cose_key).unwrap();
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn private_key_should_roundtrip() {
-        let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let sk = ed25519_dalek::SigningKey::generate(&mut rand::rng());
         let cose_key = CoseKey::try_from(&sk).unwrap();
         assert!(cose_key.is_private());
         let sk_from_cose = ed25519_dalek::SigningKey::try_from(&cose_key).unwrap();
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn can_build_public_key_from_private_cose_key() {
-        let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let sk = ed25519_dalek::SigningKey::generate(&mut rand::rng());
         let cose_key = CoseKey::try_from(&sk).unwrap();
         ed25519_dalek::VerifyingKey::try_from(&cose_key).unwrap();
     }

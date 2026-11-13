@@ -154,21 +154,22 @@ impl Verifier<Vec<u8>> for CoseKey {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::elliptic_curve::Generate as _;
 
     #[test]
     fn should_sign_ed25519() {
         let msg = b"Hello world !";
-        let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let sk = ed25519_dalek::SigningKey::generate(&mut rand::rng());
         let signature = sk.sign(msg).to_vec();
         let cose_key = CoseKey::try_from(&sk).unwrap();
-        let cose_key_signature = cose_key.sign(msg).to_vec();
+        let cose_key_signature = cose_key.sign(msg);
         assert_eq!(signature, cose_key_signature);
     }
 
     #[test]
     fn should_verify_ed25519() {
         let msg = b"Hello world !";
-        let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let sk = ed25519_dalek::SigningKey::generate(&mut rand::rng());
         let signature = sk.sign(msg).to_vec();
         let cose_key = CoseKey::try_from(&sk).unwrap();
         cose_key.verify(msg, &signature).unwrap();
@@ -177,17 +178,17 @@ mod tests {
     #[test]
     fn should_sign_p256() {
         let msg = b"Hello world !";
-        let sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let signature = Signer::<p256::ecdsa::Signature>::sign(&sk, msg).to_vec();
         let cose_key = CoseKey::try_from(&sk).unwrap();
-        let cose_key_signature = cose_key.sign(msg).to_vec();
+        let cose_key_signature = cose_key.sign(msg);
         assert_eq!(signature, cose_key_signature);
     }
 
     #[test]
     fn should_verify_p256() {
         let msg = b"Hello world !";
-        let sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let signature = Signer::<p256::ecdsa::Signature>::sign(&sk, msg).to_vec();
         let cose_key = CoseKey::try_from(&sk).unwrap();
         cose_key.verify(msg, &signature).unwrap();
@@ -196,17 +197,17 @@ mod tests {
     #[test]
     fn should_sign_p384() {
         let msg = b"Hello world !";
-        let sk = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let signature = Signer::<p384::ecdsa::Signature>::sign(&sk, msg).to_vec();
         let cose_key = CoseKey::try_from(&sk).unwrap();
-        let cose_key_signature = cose_key.sign(msg).to_vec();
+        let cose_key_signature = cose_key.sign(msg);
         assert_eq!(signature, cose_key_signature);
     }
 
     #[test]
     fn should_verify_p384() {
         let msg = b"Hello world !";
-        let sk = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let signature = Signer::<p384::ecdsa::Signature>::sign(&sk, msg).to_vec();
         let cose_key = CoseKey::try_from(&sk).unwrap();
         cose_key.verify(msg, &signature).unwrap();

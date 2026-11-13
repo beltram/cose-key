@@ -28,7 +28,6 @@ fn value_ct_eq(value: &Value, other: &Value) -> Choice {
     match (value, other) {
         (Value::Integer(a), Value::Integer(b)) => i128::from(*a).ct_eq(&i128::from(*b)),
         (Value::Bytes(a), Value::Bytes(b)) => a.ct_eq(b),
-        (Value::Float(_), Value::Float(_)) => (false as u8).into(), // we should not have to compare floats, never
         (Value::Text(a), Value::Text(b)) => a.as_bytes().ct_eq(b.as_bytes()),
         (Value::Bool(a), Value::Bool(b)) => ((a == b) as u8).into(),
         (Value::Null, Value::Null) => (true as u8).into(),
@@ -56,6 +55,7 @@ fn value_ct_eq(value: &Value, other: &Value) -> Choice {
             len_eq & choice
         }
         (Value::Simple(a), Value::Simple(b)) => a.ct_eq(b),
+        // also covers floats: we should not have to compare floats, never
         (_, _) => (false as u8).into(),
     }
 }
@@ -73,14 +73,15 @@ mod tests {
     use coset::{Algorithm, KeyOperation, KeyType, Label};
     use ed25519_dalek::SigningKey as Ed25519Signer;
     use p256::ecdsa::SigningKey as P256Signer;
+    use p256::elliptic_curve::Generate as _;
     use p384::ecdsa::SigningKey as P384Signer;
     use std::collections::BTreeSet;
 
     #[test]
     fn fields_should_be_eq() {
         assert_eq!(
-            CoseKey::from(coset::CoseKey { ..Default::default() }),
-            CoseKey::from(coset::CoseKey { ..Default::default() }),
+            CoseKey::from(coset::CoseKey::default()),
+            CoseKey::from(coset::CoseKey::default()),
         );
         // kty
         assert_eq!(
@@ -386,12 +387,12 @@ mod tests {
 
     #[test]
     fn should_be_equal() {
-        let ed25519_key_a: CoseKey = Ed25519Signer::generate(&mut rand::thread_rng()).try_into().unwrap();
-        let ed25519_key_b: CoseKey = Ed25519Signer::generate(&mut rand::thread_rng()).try_into().unwrap();
-        let p256_key_a: CoseKey = P256Signer::random(&mut rand::thread_rng()).try_into().unwrap();
-        let p256_key_b: CoseKey = P256Signer::random(&mut rand::thread_rng()).try_into().unwrap();
-        let p384_key_a: CoseKey = P384Signer::random(&mut rand::thread_rng()).try_into().unwrap();
-        let p384_key_b: CoseKey = P384Signer::random(&mut rand::thread_rng()).try_into().unwrap();
+        let ed25519_key_a: CoseKey = Ed25519Signer::generate(&mut rand::rng()).try_into().unwrap();
+        let ed25519_key_b: CoseKey = Ed25519Signer::generate(&mut rand::rng()).try_into().unwrap();
+        let p256_key_a: CoseKey = P256Signer::generate_from_rng(&mut rand::rng()).try_into().unwrap();
+        let p256_key_b: CoseKey = P256Signer::generate_from_rng(&mut rand::rng()).try_into().unwrap();
+        let p384_key_a: CoseKey = P384Signer::generate_from_rng(&mut rand::rng()).try_into().unwrap();
+        let p384_key_b: CoseKey = P384Signer::generate_from_rng(&mut rand::rng()).try_into().unwrap();
 
         assert_eq!(ed25519_key_a, ed25519_key_a);
         assert_ne!(ed25519_key_a, ed25519_key_b);

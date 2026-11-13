@@ -176,6 +176,7 @@ mod tests {
     use coset::iana;
     use ed25519_dalek::pkcs8::DecodePublicKey;
     use hex::ToHex;
+    use p256::elliptic_curve::Generate as _;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -257,19 +258,19 @@ MCowBQYDK2VwAyEAAPT6nOPM+sC2JTf5mjzxSA1noZJND75aQjWqw80LLcM=
         CoseKeyThumbprint::<32>::compute::<sha2::Sha256>(any_coset_cose_key()).unwrap();
 
         // borrowed ed25519 keys
-        let sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let sk = ed25519_dalek::SigningKey::generate(&mut rand::rng());
         CoseKeyThumbprint::<32>::compute::<sha2::Sha256>(&sk.verifying_key()).unwrap();
 
         // borrowed ecdsa keys
-        let sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         CoseKeyThumbprint::<32>::compute::<sha2::Sha256>(sk.verifying_key()).unwrap();
-        let sk = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         CoseKeyThumbprint::<32>::compute::<sha2::Sha256>(sk.verifying_key()).unwrap();
 
         // borrowed ec keys
-        let sk = p256::SecretKey::random(&mut rand::thread_rng());
+        let sk = p256::SecretKey::generate_from_rng(&mut rand::rng());
         CoseKeyThumbprint::<32>::compute::<sha2::Sha256>(sk.public_key()).unwrap();
-        let sk = p384::SecretKey::random(&mut rand::thread_rng());
+        let sk = p384::SecretKey::generate_from_rng(&mut rand::rng());
         CoseKeyThumbprint::<32>::compute::<sha2::Sha256>(sk.public_key()).unwrap();
     }
 

@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn public_key_should_roundtrip() {
-        let pk = bls_signatures::PrivateKey::generate(&mut rand::thread_rng()).public_key();
+        let pk = bls_signatures::PrivateKey::generate(&mut rand08::thread_rng()).public_key();
         let cose_key = CoseKey::try_from(&pk).unwrap();
         let pk_from_cose = bls_signatures::PublicKey::try_from(cose_key).unwrap();
         assert_eq!(pk, pk_from_cose);
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn private_key_should_roundtrip() {
-        let sk = bls_signatures::PrivateKey::generate(&mut rand::thread_rng());
+        let sk = bls_signatures::PrivateKey::generate(&mut rand08::thread_rng());
         let cose_key = CoseKey::try_from(&sk).unwrap();
         let sk_from_cose = bls_signatures::PrivateKey::try_from(cose_key).unwrap();
         assert_eq!(sk, sk_from_cose);

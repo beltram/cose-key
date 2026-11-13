@@ -1,6 +1,6 @@
 use super::*;
 use coset::iana::{self};
-use p256::elliptic_curve::sec1::ToEncodedPoint as _;
+use p256::elliptic_curve::sec1::ToSec1Point as _;
 use std::ops::Deref;
 
 impl CoseKeyExt for p256::ecdsa::VerifyingKey {
@@ -20,8 +20,8 @@ impl TryFrom<&p256::PublicKey> for CoseKey {
     type Error = CoseKeyError;
 
     fn try_from(pk: &p256::PublicKey) -> Result<Self, Self::Error> {
-        use p256::elliptic_curve::sec1::ToEncodedPoint as _;
-        let point = pk.to_encoded_point(false);
+        use p256::elliptic_curve::sec1::ToSec1Point as _;
+        let point = pk.to_sec1_point(false);
         let (x, y) = (
             point.x().ok_or(Self::Error::InvalidP256Key)?,
             point.y().ok_or(Self::Error::InvalidP256Key)?,
@@ -44,8 +44,8 @@ impl TryFrom<&p256::SecretKey> for CoseKey {
     type Error = CoseKeyError;
 
     fn try_from(sk: &p256::SecretKey) -> Result<Self, Self::Error> {
-        use p256::elliptic_curve::sec1::ToEncodedPoint as _;
-        let point = sk.public_key().to_encoded_point(false);
+        use p256::elliptic_curve::sec1::ToSec1Point as _;
+        let point = sk.public_key().to_sec1_point(false);
         let (x, y) = (
             point.x().ok_or(Self::Error::InvalidP256Key)?,
             point.y().ok_or(Self::Error::InvalidP256Key)?,
@@ -70,7 +70,7 @@ impl TryFrom<&p256::ecdsa::VerifyingKey> for CoseKey {
     type Error = CoseKeyError;
 
     fn try_from(vk: &p256::ecdsa::VerifyingKey) -> Result<Self, Self::Error> {
-        let point = vk.to_encoded_point(false);
+        let point = vk.to_sec1_point(false);
         let (x, y) = (
             point.x().ok_or(Self::Error::InvalidP256Key)?,
             point.y().ok_or(Self::Error::InvalidP256Key)?,
@@ -95,7 +95,7 @@ impl TryFrom<&p256::ecdsa::SigningKey> for CoseKey {
     type Error = CoseKeyError;
 
     fn try_from(sk: &p256::ecdsa::SigningKey) -> Result<Self, Self::Error> {
-        let point = sk.verifying_key().to_encoded_point(false);
+        let point = sk.verifying_key().to_sec1_point(false);
         let (x, y) = (
             point.x().ok_or(Self::Error::InvalidP256Key)?,
             point.y().ok_or(Self::Error::InvalidP256Key)?,
@@ -158,7 +158,7 @@ impl TryFrom<&CoseKey> for p256::PublicKey {
         };
 
         use p256::elliptic_curve::Curve as _;
-        const VERIFYING_KEY_LENGTH: usize = p256::NistP256::ORDER.bits() / 8;
+        const VERIFYING_KEY_LENGTH: usize = p256::NistP256::ORDER.as_ref().bit_width() as usize / 8;
 
         #[allow(clippy::unnecessary_fallible_conversions)]
         let x = x[..]
@@ -169,12 +169,12 @@ impl TryFrom<&CoseKey> for p256::PublicKey {
             .try_into()
             .map_err(|_| CoseKeyError::InvalidKeyLength(VERIFYING_KEY_LENGTH, y.len()))?;
 
-        use p256::elliptic_curve::sec1::FromEncodedPoint as _;
+        use p256::elliptic_curve::sec1::FromSec1Point as _;
 
-        let point = p256::EncodedPoint::from_affine_coordinates(x, y, false);
+        let point = p256::Sec1Point::from_affine_coordinates(x, y, false);
         // we use this weird construct instead of `.into_option()` because a crate might enforce an
         // older version of subtle where the method is absent
-        Option::from(Self::from_encoded_point(&point)).ok_or(CoseKeyError::InvalidP256Key)
+        Option::from(Self::from_sec1_point(&point)).ok_or(CoseKeyError::InvalidP256Key)
     }
 }
 
@@ -234,8 +234,8 @@ impl TryFrom<&CoseKey> for p256::SecretKey {
         };
 
         use p256::elliptic_curve::Curve as _;
-        const VERIFYING_KEY_LENGTH: usize = p256::NistP256::ORDER.bits() / 8;
-        const SIGNING_KEY_LENGTH: usize = p256::NistP256::ORDER.bits() / 8;
+        const VERIFYING_KEY_LENGTH: usize = p256::NistP256::ORDER.as_ref().bit_width() as usize / 8;
+        const SIGNING_KEY_LENGTH: usize = p256::NistP256::ORDER.as_ref().bit_width() as usize / 8;
 
         #[allow(clippy::unnecessary_fallible_conversions)]
         let x: [u8; VERIFYING_KEY_LENGTH] = x[..]
@@ -252,7 +252,7 @@ impl TryFrom<&CoseKey> for p256::SecretKey {
 
         let sk = Self::from_bytes(d).map_err(|_| CoseKeyError::InvalidP256Key)?;
 
-        let point = sk.public_key().to_encoded_point(false);
+        let point = sk.public_key().to_sec1_point(false);
         let (point_x, point_y) = (
             point.x().ok_or(Self::Error::InvalidP256Key)?,
             point.y().ok_or(Self::Error::InvalidP256Key)?,
@@ -263,10 +263,10 @@ impl TryFrom<&CoseKey> for p256::SecretKey {
 
         Ok(sk)
 
-        /*let point = p256::EncodedPoint::from_affine_coordinates(x, y, false);
+        /*let point = p256::Sec1Point::from_affine_coordinates(x, y, false);
         // we use this weird construct instead of `.into_option()` because a crate might enforce an
         // older version of subtle where the method is absent
-        Option::from(Self::from_encoded_point(&point)).ok_or(CoseKeyError::InvalidP256Key)*/
+        Option::from(Self::from_sec1_point(&point)).ok_or(CoseKeyError::InvalidP256Key)*/
     }
 }
 
@@ -352,8 +352,8 @@ impl TryFrom<&CoseKey> for p256::ecdsa::SigningKey {
         };
 
         use p256::elliptic_curve::Curve as _;
-        const VERIFYING_KEY_LENGTH: usize = p256::NistP256::ORDER.bits() / 8;
-        const SIGNING_KEY_LENGTH: usize = p256::NistP256::ORDER.bits() / 8;
+        const VERIFYING_KEY_LENGTH: usize = p256::NistP256::ORDER.as_ref().bit_width() as usize / 8;
+        const SIGNING_KEY_LENGTH: usize = p256::NistP256::ORDER.as_ref().bit_width() as usize / 8;
 
         #[allow(clippy::unnecessary_fallible_conversions)]
         let x: [u8; VERIFYING_KEY_LENGTH] = x[..]
@@ -370,7 +370,7 @@ impl TryFrom<&CoseKey> for p256::ecdsa::SigningKey {
 
         let sk = Self::from_bytes(d).map_err(|_| CoseKeyError::InvalidP256Key)?;
 
-        let point = sk.verifying_key().to_encoded_point(false);
+        let point = sk.verifying_key().to_sec1_point(false);
         let (point_x, point_y) = (
             point.x().ok_or(Self::Error::InvalidP256Key)?,
             point.y().ok_or(Self::Error::InvalidP256Key)?,
@@ -394,10 +394,11 @@ impl TryFrom<CoseKey> for p256::ecdsa::SigningKey {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::elliptic_curve::Generate as _;
 
     #[test]
     fn public_key_should_roundtrip() {
-        let pk = p256::SecretKey::random(&mut rand::thread_rng()).public_key();
+        let pk = p256::SecretKey::generate_from_rng(&mut rand::rng()).public_key();
         let cose_key = CoseKey::try_from(pk).unwrap();
         let pk_from_cose = p256::PublicKey::try_from(&cose_key).unwrap();
         assert_eq!(pk, pk_from_cose);
@@ -405,7 +406,7 @@ mod tests {
 
     #[test]
     fn secret_key_should_roundtrip() {
-        let sk = p256::SecretKey::random(&mut rand::thread_rng());
+        let sk = p256::SecretKey::generate_from_rng(&mut rand::rng());
         let cose_key = CoseKey::try_from(&sk).unwrap();
         let sk_from_cose = p256::SecretKey::try_from(&cose_key).unwrap();
         assert_eq!(sk, sk_from_cose);
@@ -413,7 +414,7 @@ mod tests {
 
     #[test]
     fn verifying_key_should_roundtrip() {
-        let sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let pk = sk.verifying_key();
         let cose_key = CoseKey::try_from(pk).unwrap();
         let pk_from_cose = p256::ecdsa::VerifyingKey::try_from(&cose_key).unwrap();
@@ -422,7 +423,7 @@ mod tests {
 
     #[test]
     fn signing_key_should_roundtrip() {
-        let sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let cose_key = CoseKey::try_from(&sk).unwrap();
         let sk_from_cose = p256::ecdsa::SigningKey::try_from(&cose_key).unwrap();
         assert_eq!(sk, sk_from_cose);
@@ -430,11 +431,11 @@ mod tests {
 
     #[test]
     fn can_build_public_key_from_private_cose_key() {
-        let sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let cose_key = CoseKey::try_from(&sk).unwrap();
         p256::ecdsa::VerifyingKey::try_from(&cose_key).unwrap();
 
-        let sk = p256::SecretKey::random(&mut rand::thread_rng());
+        let sk = p256::SecretKey::generate_from_rng(&mut rand::rng());
         let cose_key = CoseKey::try_from(&sk).unwrap();
         p256::PublicKey::try_from(&cose_key).unwrap();
     }

@@ -90,12 +90,17 @@ impl<'de> serde::Deserialize<'de> for CoseKey {
                     match crv {
                         #[cfg(feature = "p256")]
                         Some(iana::EllipticCurve::P_256) => {
-                            let sk = p256::ecdsa::SigningKey::from_bytes(d[..].into()).map_err(D::Error::custom)?;
+                            let sk = p256::ecdsa::SigningKey::from_bytes(d[..].try_into().map_err(D::Error::custom)?)
+                                .map_err(D::Error::custom)?;
 
-                            let point = sk.verifying_key().to_encoded_point(false);
+                            let point = sk.verifying_key().to_sec1_point(false);
                             let (x, y) = (point.x(), point.y());
-                            let x = x.ok_or(D::Error::custom("Invalid x point while deserializing a P256 CoseKey"))?;
-                            let y = y.ok_or(D::Error::custom("Invalid y point while deserializing a P256 CoseKey"))?;
+                            let x = x.ok_or_else(|| {
+                                D::Error::custom("Invalid x point while deserializing a P256 CoseKey")
+                            })?;
+                            let y = y.ok_or_else(|| {
+                                D::Error::custom("Invalid y point while deserializing a P256 CoseKey")
+                            })?;
 
                             cose_key
                                 .params
@@ -106,12 +111,17 @@ impl<'de> serde::Deserialize<'de> for CoseKey {
                         }
                         #[cfg(feature = "p384")]
                         Some(iana::EllipticCurve::P_384) => {
-                            let sk = p384::ecdsa::SigningKey::from_bytes(d[..].into()).map_err(D::Error::custom)?;
+                            let sk = p384::ecdsa::SigningKey::from_bytes(d[..].try_into().map_err(D::Error::custom)?)
+                                .map_err(D::Error::custom)?;
 
-                            let point = sk.verifying_key().to_encoded_point(false);
+                            let point = sk.verifying_key().to_sec1_point(false);
                             let (x, y) = (point.x(), point.y());
-                            let x = x.ok_or(D::Error::custom("Invalid x point while deserializing a P384 CoseKey"))?;
-                            let y = y.ok_or(D::Error::custom("Invalid y point while deserializing a P384 CoseKey"))?;
+                            let x = x.ok_or_else(|| {
+                                D::Error::custom("Invalid x point while deserializing a P384 CoseKey")
+                            })?;
+                            let y = y.ok_or_else(|| {
+                                D::Error::custom("Invalid y point while deserializing a P384 CoseKey")
+                            })?;
 
                             cose_key
                                 .params
@@ -165,10 +175,11 @@ impl serde::Serialize for CoseKeySlim<'_> {
 mod tests {
     use super::*;
     use ciborium::Value;
+    use p256::elliptic_curve::Generate as _;
 
     #[test]
     fn ed25519_ser_de_should_roundtrip() {
-        let ed25519_sk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let ed25519_sk = ed25519_dalek::SigningKey::generate(&mut rand::rng());
         let cose_key = CoseKey::try_from(ed25519_sk).unwrap();
         let ser_value = Value::serialized(&cose_key).unwrap();
         let de = ser_value.deserialized::<CoseKey>().unwrap();
@@ -192,7 +203,7 @@ mod tests {
 
     #[test]
     fn p256_ser_de_should_roundtrip() {
-        let p256_sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let p256_sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let cose_key = CoseKey::try_from(p256_sk).unwrap();
         let ser_value = Value::serialized(&cose_key).unwrap();
         let de = ser_value.deserialized::<CoseKey>().unwrap();
@@ -216,7 +227,7 @@ mod tests {
 
     #[test]
     fn p384_ser_de_should_roundtrip() {
-        let p384_sk = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let p384_sk = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let cose_key = CoseKey::try_from(p384_sk).unwrap();
         let ser_value = Value::serialized(&cose_key).unwrap();
         let de = ser_value.deserialized::<CoseKey>().unwrap();
@@ -240,7 +251,7 @@ mod tests {
 
     #[test]
     fn bls12_381_ser_de_should_roundtrip() {
-        let bls12_381_sk = bls_signatures::PrivateKey::generate(&mut rand::thread_rng());
+        let bls12_381_sk = bls_signatures::PrivateKey::generate(&mut rand08::thread_rng());
         let cose_key = CoseKey::try_from(bls12_381_sk).unwrap();
         let ser_value = Value::serialized(&cose_key).unwrap();
         let de = ser_value.deserialized::<CoseKey>().unwrap();
