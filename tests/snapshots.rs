@@ -7,6 +7,15 @@
 use cose_key::{CoseKey, reexports::ciborium, thumbprint::CoseKeyThumbprint};
 use dernged::Rng;
 
+/// Deterministic key material, built from bytes rather than with `random()` so that snapshots do not depend on how
+/// each library turns RNG output into a scalar.
+fn seed<const N: usize>() -> [u8; N] {
+    use rand::Rng as _;
+    let mut seed = [0; N];
+    Rng::default().fill_bytes(&mut seed);
+    seed
+}
+
 mod ed25519 {
     use super::*;
 
@@ -35,7 +44,7 @@ mod p256 {
     use super::*;
 
     fn keypair() -> (CoseKey, CoseKey) {
-        let sk = ::p256::SecretKey::random(&mut Rng::default());
+        let sk = ::p256::SecretKey::from_slice(&seed::<32>()).unwrap();
         (
             CoseKey::try_from(&sk).unwrap(),
             CoseKey::try_from(&sk.public_key()).unwrap(),
@@ -50,7 +59,7 @@ mod p256 {
 
     #[test]
     fn ecdsa_cose_key() {
-        let sk = ::p256::ecdsa::SigningKey::random(&mut Rng::default());
+        let sk = ::p256::ecdsa::SigningKey::from_slice(&seed::<32>()).unwrap();
         let private = CoseKey::try_from(&sk).unwrap();
         let public = CoseKey::try_from(sk.verifying_key()).unwrap();
         snapshot_keypair("p256_ecdsa", private, public);
@@ -67,7 +76,7 @@ mod p384 {
     use super::*;
 
     fn keypair() -> (CoseKey, CoseKey) {
-        let sk = ::p384::SecretKey::random(&mut Rng::default());
+        let sk = ::p384::SecretKey::from_slice(&seed::<48>()).unwrap();
         (
             CoseKey::try_from(&sk).unwrap(),
             CoseKey::try_from(&sk.public_key()).unwrap(),
@@ -82,7 +91,7 @@ mod p384 {
 
     #[test]
     fn ecdsa_cose_key() {
-        let sk = ::p384::ecdsa::SigningKey::random(&mut Rng::default());
+        let sk = ::p384::ecdsa::SigningKey::from_slice(&seed::<48>()).unwrap();
         let private = CoseKey::try_from(&sk).unwrap();
         let public = CoseKey::try_from(sk.verifying_key()).unwrap();
         snapshot_keypair("p384_ecdsa", private, public);
@@ -99,7 +108,7 @@ mod bls {
     use super::*;
 
     fn keypair() -> (CoseKey, CoseKey) {
-        let sk = bls_signatures::PrivateKey::generate(&mut Rng::default());
+        let sk = bls_signatures::PrivateKey::generate(&mut dernged01::Rng::default());
         (
             CoseKey::try_from(&sk).unwrap(),
             CoseKey::try_from(&sk.public_key()).unwrap(),

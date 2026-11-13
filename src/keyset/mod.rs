@@ -115,14 +115,15 @@ impl CoseKeySetBuilder {
 mod tests {
     use super::*;
     use ciborium::{Value, cbor};
+    use p256::elliptic_curve::Generate as _;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn should_support_ed25519_keys() {
-        let key_a = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
-        let key_b = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let key_a = ed25519_dalek::SigningKey::generate(&mut rand::rng());
+        let key_b = ed25519_dalek::SigningKey::generate(&mut rand::rng());
 
         let keyset = CoseKeySet::builder()
             .with_signing_key(&key_a)
@@ -141,8 +142,8 @@ mod tests {
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn should_support_p256_keys() {
-        let key_a = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
-        let key_b = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let key_a = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
+        let key_b = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
 
         let keyset = CoseKeySet::builder()
             .with_signing_key(&key_a)
@@ -161,8 +162,8 @@ mod tests {
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn should_support_p384_keys() {
-        let key_a = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
-        let key_b = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let key_a = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
+        let key_b = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
 
         let keyset = CoseKeySet::builder()
             .with_signing_key(&key_a)
@@ -181,12 +182,12 @@ mod tests {
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn should_be_versatile() {
-        let ed25519_key_a = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
-        let ed25519_key_b = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
-        let p256_key_a = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
-        let p256_key_b = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
-        let p384_key_a = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
-        let p384_key_b = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let ed25519_key_a = ed25519_dalek::SigningKey::generate(&mut rand::rng());
+        let ed25519_key_b = ed25519_dalek::SigningKey::generate(&mut rand::rng());
+        let p256_key_a = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
+        let p256_key_b = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
+        let p384_key_a = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
+        let p384_key_b = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
 
         let keyset = CoseKeySet::builder()
             .with_signing_key(&ed25519_key_a)
@@ -292,7 +293,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn should_reject_duplicates() {
-        let key_a = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+        let key_a = ed25519_dalek::SigningKey::generate(&mut rand::rng());
         assert!(matches!(
             CoseKeySet::builder()
                 .with_signing_key(&key_a)

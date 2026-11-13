@@ -64,12 +64,13 @@ impl pkcs8::EncodePublicKey for CoseKey {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::elliptic_curve::Generate as _;
     use pkcs8::{EncodePublicKey, LineEnding::LF};
 
     #[test]
     fn from_public_key_pem_should_succeed() {
         // Ed25519
-        let vk = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng()).verifying_key();
+        let vk = ed25519_dalek::SigningKey::generate(&mut rand::rng()).verifying_key();
         let ck = CoseKey::try_from(&vk).unwrap();
 
         let pem = vk.to_public_key_pem(LF).unwrap();
@@ -78,7 +79,7 @@ mod tests {
         assert_eq!(ck_pem.to_public_key_pem(LF).unwrap(), pem);
 
         // P256
-        let sk = p256::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p256::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let vk = sk.as_ref();
         let ck = CoseKey::try_from(vk).unwrap();
 
@@ -88,7 +89,7 @@ mod tests {
         assert_eq!(ck_pem.to_public_key_pem(LF).unwrap(), pem);
 
         // P384
-        let sk = p384::ecdsa::SigningKey::random(&mut rand::thread_rng());
+        let sk = p384::ecdsa::SigningKey::generate_from_rng(&mut rand::rng());
         let vk = sk.as_ref();
         let ck = CoseKey::try_from(vk).unwrap();
 
