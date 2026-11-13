@@ -1,0 +1,5 @@
+---
+source: tests/snapshots.rs
+expression: tp
+---
+23b10e3ea1612bdf6e9f188bf847182b9c60ab21dd9ec5b3a3a801ef788a85e9

@@ -1,0 +1,5 @@
+---
+source: tests/snapshots.rs
+expression: cbor_hex(&public)
+---
+a30101200d2158308f336467f057b373bb3c43815a10ec131119d1bf50c14fa3f9ad86c0ec074f920f936a5315a8365a37fee0afa34c32c6

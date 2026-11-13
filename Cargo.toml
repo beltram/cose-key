@@ -61,6 +61,10 @@ ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 p256 = { version = "0.13" }
 getrandom = { version = "0.2", features = ["js"] }
 
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
+insta = "1.49"
+dernged = "0.1"
+
 [workspace.lints.clippy]
 # Enforced Groups
 style = { level = "warn", priority = -1 }
